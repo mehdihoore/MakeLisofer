@@ -159,14 +159,29 @@ open.")
 (princ)
 )
 
+
+(vl-load-com)
+
+(defun c:openExcel (/ path filename)
+  (if (findfile (setq path (vl-string-right-trim "\\" (getvar 'dwgprefix))
+                      path (substr path 1 (vl-string-position (ascii "\\") path 0 T))
+                      filename (strcat "\"" path "\\QCL Issue comment.xlsm\"")))
+    (startapp "C:\\Program Files\\Microsoft Office\\root\Office16\\EXCEL.EXE" filename )
+    (princ "\n'QCL Issue Register' File not found."))
+(princ))
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 (defun export-to-excel ()
   (vl-load-com)
   (setq xl (vlax-get-object "Excel.Application"))
-  (setq workbooks (vlax-get-property xl "Workbooks"))
-  (setq wb (vlax-invoke-method workbooks "Open" "E:\\golkhaneh\\adaption\\listo.xlsx"))
+  
+  (if xl 
+    (progn
+    (vlax-put-property xl 'visible :vlax-true)
+  (setq workbooks (vlax-get-property xl "workbooks"))
+  (setq address (getstring "Give the address of excel file: "))
+  (setq wb (vlax-invoke-method workbooks "Open" address))
   (setq sheets (vlax-get-property wb "Sheets"))
   (setq sheet (vlax-get-property sheets "Item" 1))
   (vlax-put-property sheet "Name" "Data")
@@ -185,7 +200,7 @@ open.")
         (setq i (1+ i))))
     (prompt "\nNo text found in layer 'steels'."))
 ;; remove extra empty line
-
+(setq lines (split-string-to-lines contents))
   (defun sort-by-substring (list substr)
   (vl-sort list (lambda (a b)
                   (string< (vl-string-search substr a) (vl-string-search substr b)))))
@@ -236,113 +251,73 @@ open.")
 
   
   )
-
-
-
-
-;;=======================================================================================================================
-;;=======================================================================================================================
-;;=======================================================================================================================
-
-(defun C:elu (/ tbl repeat-prompt)
-  (setq j 1)
-  (setq q0 (ssget "ALL" '((8 . "steels") (0 . "text"))))
-  (setq no (sslength q0))
-  (setq n 0)
-  (setq total-length 0.0)
-  (setq total-weight 0.0)
-  (setq table-data '())
-  (setq qq (ssname q0 n))
-  (setq n (+ n 1))
-  (setq q1 (entget qq))
-  (setq q2 (assoc 1 q1))
-  (setq q3 (cdr q2))
-  (setq f (atof (substr q3 1 2)))
-  (setq p (cdr (assoc 10 q1)))
-  (setq hi (cdr (assoc 40 q1)))
-  (setq n0 0)
-  (setq qq0 (ssname q0 n0))
-  (setq n0 (+ n0 1))
-  (setq q10 (entget qq0))
-  (setq q20 (assoc 1 q10))
-  (setq q30 (cdr q20))
-  (setq f0 (atof (substr q30 1 2)))
-  (setq p0 (cdr (assoc 10 q10)))
-  (setq opp "1")
-                
-  (while ( > j 0) 
-    
-      ;; Prompt the user to choose how to enter the length
-(setq length-choice (getint "\nEnter the length of the line(s). or: \nfor select a line choose -1: [-1/N]"))
-     
-(alert (itoa length-choice) )
-(if (< length-choice 0)        
-    (progn
-       (setq ss )
-            (if (/= (sslength ss) 0)
-                (progn
-                  (setq nameOfObject (getstring "Enter name of object [BEAM/COLUMN/FOUNDATION/SLAB/WALL]"))
-                  (sbe) ;; Call the ALE function
-                  (setq position (getint "Enter the number of position : "  ))
-                  (setq dist (getdist "Enter the length of space in which the reinforcements are placed in m: "))
-                  (setq space (getreal "Enter the spacing between rebars in cm: "))
-                  ; Calculate the number of rebars
-                  (setq cmspace (/ space 100 ) )
-                  (setq num (1+ (fix (/ dist cmspace))))
-                  (setq tot (* num totalLen))
-                  (setq diameters '("10" "12" "14" "16" "18" "20" "22" "25" "28" "30" "32"))
-                  (setq dia (atoi(getstring t "\nSelect diameter [10/12/14/16/18/20/22/25/28/30/32]: ")))
-                  (while (not (member  (rtos dia 2 0)  diameters))
-                    (setq dia (getint "\nInvalid diameter. Enter again: "))
-                  )
-                  (setq total-length (+ total-length totalLen))
-    (setq unit-weight (/ (cdr (assoc dia '((10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
-    (setq total-weight (+ total-weight (* tot unit-weight)))
-                  (setq finaltext (strcat nameOfObject "*" (itoa position) " " (rtos num 2 0) "\U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) " Total length is:" (rtos total-length 2 2) "m/ total weight is " (rtos total-weight 2 2) " kg\n" ))
-                  (alert (strcat "this is string: " " "finaltext) )
-                  
-                  (vl-load-com)
-
-                  (setq mspace (vla-get-modelspace 
-                                    (vla-get-activedocument 
-                                          (vlax-get-acad-object))))
-                    ;;(setq currlayer (vla-get-layer doc))
-                    (setq apt (getpoint "\nInsertion Point: "))
-
-                    (setq LayerName "steels")
-                    (defun get-text-height ()
-  (while t
-    (setq htstr (getstring "\nEnter text height: "))
-    (cond
-      ((and htstr (/= htstr "")) ; if the input is not empty
-       (setq ht (atof htstr)) ; convert to a float
-       (if (and ht (> ht 0)) ; check if it's a positive number
-         (return ht) ; exit the loop and return the height
-         (princ "\nInvalid height. Please enter a positive number.")))
-      (t ; if the input is empty
-       (princ "\nYou must enter a height.")))))
-
-                    ;;(setq ht (getreal "\nHeight : "))
-                  ;;(vla-put-layer finaltext  "steels")
-
-                    (setq thetext (vla-AddText mspace finaltext 
-                                                  (vlax-3d-point apt) (get-text-height)))
-                  (vla-put-layer thetext LayerName )
-                  
-                  
-                  )
-              ;; no valid selection
-              (progn
-                (setq totalLen 0.0)
-                (setq num 0)
-                (alert "No valid object selected"))
-            ))
-  ;; User enters the length directly
   (progn
+   (setq sel (ssget "_X" '((0 . "TEXT")(8 . "steels"))))
+  (setq contents "")
+  (if sel
+    (progn
+      (setq nents (sslength sel))
+      (setq i 0)
+      (while (< i nents)
+        (setq ent (ssname sel i))
+        (setq contents (strcat contents (vla-get-TextString (vlax-ename->vla-object ent)) "\n"))
+        (setq contents (substr contents 1 (1- (strlen contents)))) ; Remove the last newline character
+        ;;(alert contents)
+        (setq i (1+ i))))
+    (prompt "\nNo text found in layer 'steels'."))
+;; remove extra empty line
+
+
+(setq lines (split-string-to-lines contents))
+    (defun sort-by-number-after-star (list)
+  (vl-sort-i list
+             (lambda (a b)
+               (let* ((num-a (nth 1 (vl-string-split a "*")))
+                      (num-b (nth 1 (vl-string-split b "*"))))
+                 (< (atoi num-a) (atoi num-b))))))
+  ;;
+  (vl-load-com)
+; ask for file path
+(setq file_path (getfiled "Save CSV File" "" "csv" 1))
+
+; create file
+(setq file (open file_path "w"))
+(write-line "name, Pos,Part Count, Size, @POS, Length,Total lengths(m), Total Weight(kg)" file)
+; write contents to file
+  
+(setq lines (split-string-to-lines contents))
+
+(foreach line lines
+   
+  (write-line line file)
+)
+
+; close file
+(close file)
+
+  
+  )
+  
+  ))
+;;=======================================================================================================================
+;;=======================================================================================================================
+;;=======================================================================================================================
+
+(defun put-text ()
+  
     (setq nameOfObject (getstring "Enter name of object [BEAM/COLUMN/FOUNDATION/SLAB/WALL]"))
     (setq position (getint "Enter the number of position : "  ))
+  (setq length-choice (getreal "Enter length of rebar or Enter [0] to select"))
+  (if (= length-choice 0)
+    (progn
+    (sbe)
+    (setq length-choice totalLen )
+    (alert  (rtos length-choice)  ))
+  )
     (setq totalLen length-choice)
+(princ totalLen)
     (setq dist (getdist "Enter the length of space in which the reinforcements are placed in m: "))
+(princ totalLen)
     (setq space (getreal "Enter the spacing between rebars in cm: "))
     ; Calculate the number of rebars
     (setq cmspace (/ space 100 ) )
@@ -354,10 +329,10 @@ open.")
   (while (not (member  (rtos dia 2 0)  diameters))
     (setq dia (getint "\nInvalid diameter. Enter again: "))
   )
-     (setq total-length (+ total-length totalLen))
+     ;;(setq total-length (+ total-length totalLen))
     (setq unit-weight (/ (cdr (assoc dia '((10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
-    (setq total-weight (+ total-weight (* tot unit-weight)))
-                  (setq finaltext (strcat  nameOfObject "*"  (itoa position) " " (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) " Total length is:" (rtos total-length 2 2) "m/ total weight is " (rtos total-weight 2 2) " kg\n" ))
+   (setq total-weight  (* tot unit-weight))
+                  (setq finaltext (strcat  nameOfObject "*"  (itoa position) " " (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) " Total length is:" (rtos tot 2 2) "m/ total weight is " (rtos total-weight 2 2) " kg\n" ))
     ;;(setq finaltext (strcat (itoa position) " " (rtos num 2 0) "\U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) "L=" (rtos totalLen 2 2) ))
                   (alert (strcat "this is string: " " "finaltext) )
                   
@@ -377,37 +352,43 @@ open.")
                     (setq thetext (vla-AddText mspace finaltext 
                                                   (vlax-3d-point apt) ht))
                   (vla-put-layer thetext LayerName )
-                  ))
-      
-    (setq total-length (+ total-length totalLen))
-    (setq unit-weight (/ (cdr (assoc dia '((10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
-    (setq total-weight (+ total-weight (* tot unit-weight)))
-      (setq table-data (append table-data (list (list totalLen num dia tot unit-weight (* tot unit-weight)))))
+                 
+)
 
+;;=======================================================================================================================
+;;=======================================================================================================================
+;;=======================================================================================================================
+(defun create-layer (layer-name)
+  (setq layer-table (vla-get-Layers (vla-get-ActiveDocument (vlax-get-acad-object))))
+  ;;(setq layer-name (getstring "Give the layer name: "))
+  (setq layer (tblsearch "layer" layer-name))
+  (if (not layer)
+    (progn
+      (setq layers (vla-get-layers (vla-get-activedocument (vlax-get-acad-object))))
+      (setq layer (vla-add layers layer-name))
+      ;;(vla-put-Color layer acMagenta)
+      (vla-put-Color layer acMagenta))) layer)
+;;=======================================================================================================================
+;;=======================================================================================================================
+;;=======================================================================================================================
+
+(defun C:elu (/ tbl repeat-prompt)
+  (create-layer "steels")
+  (setq j 1)
+  (setq q0 (ssget "ALL" '((8 . "steels") (0 . "text"))))
+
+  (setq opp "1")
+                
+  (while ( > j 0) 
+(put-text)
   ;; Prompt the user if they want to repeat
-  (setq repeat-prompt (getstring t "\nDo you want to enter another length? [Y/N] exit [e]"))
-  (if (or (equal repeat-prompt "Y") (equal repeat-prompt "y"))
-      ;; User wants to repeat, so reset variables
-      (progn
-        (setq length-choice 0.0)
-        (setq ss nil)
-        (setq length1 0.0)
-        (setq num 0)
-        (setq tot 0.0)
-        (setq dia 0.0))
-    ;; User wants to exit, so display the table   
-      (progn
-      (setq msg (strcat "Total length: " (rtos total-length 2 2) " m\n"))
-      (setq msg (strcat msg "Total weight: " (rtos total-weight 2 2) " kg\n"))
+  (setq repeat-prompt (getstring t "\nDo you want to enter another length? [Y] or exit [e]"))
+   
      
-      )    
-    )
+  
     (if(or (equal repeat-prompt "E") (equal repeat-prompt "e"))
        (progn
-      (setq msg (strcat "Total length: " (rtos total-length 2 2) " m\n"))
-      (setq msg (strcat msg "Total weight: " (rtos total-weight 2 2) " kg\n"))
-      (alert msg)
-      (princ)
+     
       (export-to-excel)
       (setq j 0))
     )
