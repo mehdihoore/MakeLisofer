@@ -1,3 +1,57 @@
+(defun EZA ( )
+
+        (defun myerror (msg)
+          (setvar 'lunits *lunits)
+          (setq *error* myerror)
+          )
+          (princ "پس از پایان کار اینتر بزنید")
+          (setq *error* myerror)
+          
+          (setq *lunits (getvar 'lunits))
+          (setvar 'lunits 4)  ;to accept any input format, incl scientific and arch.
+          (if (numberp addsum)
+              (progn
+                (princ (strcat "\nیک شماره یا یک فاصله را وارد کنید:, یا [Enter] تا با  " (rtos AddSum) " شروع کنیم: "))
+                (princ (strcat "\n= " (rtos 0 *lunits) " + "))
+                (initget 32) ; null, 0, and negatives permitted
+                (setq value (getdist))
+                (if (/= value nil)(setq addSum value))
+                )
+              (progn
+                (princ "\nیک شماره یا یک فاصله وارد کنید : ")
+                (setq addSum 0)
+                )
+            )
+
+          (setq value 0)
+          (while (/= value nil)
+            (princ (strcat "\n= " (rtos AddSum *lunits) " + "))
+            (initget 32)
+            (setq value (getdist))
+            (if value
+              (progn
+                (setq AddSum (+ AddSum value))
+                )
+              )
+            );while
+
+          (setvar 'lunits *lunits)
+          (princ (strcat "\nAddSum = " (rtos AddSum *lunits) "  \[" (rtos AddSum 2 8) "]"))
+          (princ)
+);defun
+;;=======================================================================================================================
+;;=======================================================================================================================
+;;=======================================================================================================================
+(defun calculate (num1  operator num2 )
+
+    (if(equal operator "+") (+ num1 num2))
+    (if (equal operator "-") (- num1 num2))
+    (if (equal operator "*") (* num1 num2))
+    (if (equal operator "/") (/ num1 num2))
+    )
+;;=======================================================================================================================
+;;=======================================================================================================================
+;;=======================================================================================================================
 (defun sbe ()
       (setvar "cmdecho" 0)
 
@@ -15,7 +69,7 @@
         (command "area" "Object" en)
         (getvar "perimeter")
       )
-    (setq entekhab (getstring t "Do you want put dist(d) or select shapes(s) [d/s]"))
+    (setq entekhab (getstring t "فاصله می‌گذارید (d) یا سلکت می‌کنید(s) ؟ [d/s]"))
       (if (or (equal entekhab "s")(equal entekhab "S"))
         (progn
         (if (setq eset (ssget))
@@ -37,9 +91,10 @@
                     (T (setq len 0.0))
                   )
                   (while (< (strlen enType) 12) (setq enType (strcat enType " ")))
-                  (princ "\n Found ")
+                  
                   (princ enType)
-                  (princ " with a length of: ")
+                  (princ "\n یافته شد ")
+                  (princ " با طول: ")
                   (princ (rtos len))
                   (setq totalLen (+ totalLen len))
                   (setq cntr (+ cntr 1))
@@ -47,17 +102,23 @@
               )
           )
         )
-    
-        (setq totalLen (getdist "put dist:"))
+        (progn
+         (princ "put dist:")
+        (EZA)
+        (setq totalLen AddSum)
+        )
+       
+                    
       )
 
       (setvar "cmdecho" 1)
-      (alert (strcat "\n Found " (itoa cntr) " entitie(s) with a Total Length of " (rtos totalLen)))
+      (alert (strcat "\n یافته شد " (itoa cntr) " چیز با مجموع طول: " (rtos totalLen)))
       (princ)
 )
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
+
 (defun split-string-to-lines (str)
   (vl-load-com)
   (setq lines '())
@@ -180,7 +241,34 @@
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
+(defun find-max-number ()
+  (setq sel (ssget "_X" '((0 . "TEXT")(8 . "steels"))))
+  (setq contents "")
+  (if sel
+      (progn
+        (setq nents (sslength sel))
+        (setq i 0)
+        (while (< i nents)
+          (setq ent (ssname sel i))
+          (setq contents (strcat contents (vla-get-TextString (vlax-ename->vla-object ent)) "\n"))
+          (setq contents (substr contents 1 (1- (strlen contents))))
+          (setq i (1+ i))))
+    (prompt "\nNo text found in layer 'steels'."))
+  (setq lines (split-string-to-lines contents))
 
+  (setq pos '())
+  (foreach line lines
+    (setq s (vl-string-position (ascii "/") line))
+    (setq second (substr line (+ s 2) (strlen line)))
+    (setq s1 (vl-string-position (ascii "/") second))
+    (setq poses (atof (substr line (+ s 2) s1)))
+    (setq pos (cons poses pos)))
+  
+  (setq max-number (apply 'max pos))
+  )
+;;=======================================================================================================================
+;;=======================================================================================================================
+;;=======================================================================================================================
 (defun export-to-excel ()
         (vl-load-com)
         (setq xl (vlax-get-object "Excel.Application"))
@@ -211,12 +299,6 @@
           (prompt "\nNo text found in layer 'steels'."))
       ;; remove extra empty line
       (setq lines (split-string-to-lines contents))
-        ;| (defun sort-by-substring (list substr)
-        (vl-sort list (lambda (a b)
-                        (string< (vl-string-search substr a) (vl-string-search substr b)))))
-
-      (setq sorted-lst (sort-by-substring contents "*"))
-      (princ sorted-lst) |;
         ;;
         (vl-load-com)
       ; ask for file path
@@ -328,9 +410,9 @@
                         
                             
                    (setq object '("BEAM" "COLUMN" "FOUNDATION" "SLAB" "WALL" ))
-                   (setq nameOfObject (getstring t "Enter name of object [BEAM/COLUMN/FOUNDATION/SLAB/WALL]"))
+                   (setq nameOfObject (getstring t "دسته‌بندی مورد نظر را انتخاب کنید:[BEAM/COLUMN/FOUNDATION/SLAB/WALL]"))
                    (while (not (member   nameOfObject   object))
-                      (setq nameOfObject (getstring t "\nInvalid object.[BEAM/COLUMN/FOUNDATION/SLAB/WALL] Enter again: "))
+                      (setq nameOfObject (getstring t "\nانتخابتان غلط است.[BEAM/COLUMN/FOUNDATION/SLAB/WALL] دوباره تلاش کنید: "))
                     )
                             (if (equal nameOfObject "BEAM")
                               
@@ -446,16 +528,15 @@
   (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
   (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
 
- (setq blockname "")
-  (while (not (and blockname (not (tblsearch "BLOCK" blockname))))
-    (setq blockname (getstring "Enter a unique name for the block: "))
-    (if (tblsearch "BLOCK" blockname)
+  (setq blockname (getstring "نامی یکتا برای بلاک بگذارید: "))
+    (while (tblsearch "BLOCK" blockname)
       (progn
         (setq blockname "")
-        (prompt "\nBlock name already exists. Please enter a unique name.")
+        (prompt "\nنامی که گذارده‌اید، موجود است، نامی دیگر بگذارید.")
+        (setq blockname (getstring "نامی یکتا برای بلاک بگذارید: "))
       )
     )
-  )
+  
   (setq startss (list (+ prevX tool) (+ prevY (* 4 ht)) prevZ))
   (setq endss (list (- prevX (* ht 2.5)) (- prevY arz) prevZ))
   (setq blockpoints (ssget "W" startss endss))
@@ -478,31 +559,31 @@
 (defun put-text ()
    (setq objects '("b" "c" "f" "s" "w" "B" "C" "F" "S" "W" ))
     (setq mainlist '("m" "p" "M" "P" ))
-    (setq nameOfObject (getstring t "\nEnter name of object BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
+    (setq nameOfObject (getstring t " دسته‌بندی مورد نظر را انتخاب کنید: BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
   (while (not (member   nameOfObject   objects))
-    (setq nameOfObject (getstring t "\nEnter name of object BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
+    (setq nameOfObject (getstring t " دسته بندی مورد نظر را انتخاب کنید: BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
   )
-  (setq position (getint "\nEnter the number of position : "  ))
-  (setq mainrebar (getstring "\nMain Rebar(main) Or PartRebar(part)[main/part]"))
+  (setq position (FIND-MAX-NUMBER))
+  (setq mainrebar (getstring "\nاصلی(main) Or فرعی(part)[main/part]"))
    (while (not (member   mainrebar   mainlist))
-    (setq mainrebar (getstring "\nMain Rebar(M) Or PartRebar(P)[M/P]"))
+    (setq mainrebar (getstring "\nاصلی(M) Or فرعی(P)[M/P]"))
    )
   (setq diameters '("8" "10" "12" "14" "16" "18" "20" "22" "25" "28" "30" "32"))
-              (setq dia (atoi(getstring t "\nSelect diameter [8/10/12/14/16/18/20/22/25/28/30/32]: ")))
+              (setq dia (atoi(getstring t "\nسایز میلگرد را انتخاب کنید: [8/10/12/14/16/18/20/22/25/28/30/32]: ")))
               (while (not (member  (rtos dia 2 0)  diameters))
-                (setq dia (getint "\nInvalid diameter. Enter again: "))
+                (setq dia (getint "\nسایز اشتباه است. دوباره وارد کنید: "))
               )
   (if (or (equal mainrebar "main") (equal mainrebar "m") (equal mainrebar "M") (equal mainrebar "Main") (equal mainrebar "MAIN"))
     (progn
           
-      (setq length-choice (getreal "\nEnter length of rebar or Enter [0] to select"))
+      (setq length-choice (getreal "\nطول میلگرد را بنویسید یا  [0] برای سلکت کردن "))
       (if (= length-choice 0)
         (progn
               (sbe)
               (setq length-choice totalLen )
               (if (> length-choice 12)
                 (progn
-                  (setq over (getstring t "\nlength is bigger than 12 meters, calculate overlap [y/n] ?"))
+                  (setq over (getstring t "\nطولی که وارد کرده‌اید از 12 متر بلندتر است، میخواهید اورلپ حساب کنید [y/n] ?"))
                   (if
                     (or (equal over "y") (equal over "Y"))
                     (progn
@@ -511,10 +592,29 @@
                         (princ (strcat "\nOverlap Length: " (rtos overlap-length 2 2) " cm"))
                         (setq number  1)
                         (setq max-length 12.0)  ; Maximum length of a rebar without overlap
-                        (setq bend (getstring t "\nwith bend(b) or without bend(w) [b/w]:"))
+                        (setq bend (getstring t "\nبه همراه خم(b) یا بدون خم(w) [b/w]:"))
                         (if 
                           (or(equal bend "b") (equal bend "B"))
                           (progn
+                            (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
+                            (if 
+                                  (or(equal qty "a") (equal qty "A"))
+                              (progn
+                                (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
+                                (eza)
+                                (setq dist AddSum)
+
+                                (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
+                                ; Calculate the number of rebars
+                                (setq cmspace (/ space 100 ) )
+                                (setq num (1+ (fix (/ dist cmspace))))
+                              )
+                              (setq num (atof qty))
+                            )
+                            (setq num (atof qty))
+                            (setq tot (* num totalLen))
+                            (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+                            (setq total-weight  (* tot unit-weight))
                               (setq kham (* dia  12))
                               (setq khamm (/ kham 1000.))
                               (setq length-choice(- length-choice (- (- max-length khamm)  overlap-length )))
@@ -525,8 +625,8 @@
                               )
                               (setq remm1(+ remm khamm))
                               (setq length-choice (+ (* max-length  number)  remm1 max-length))
-                            (alert (strcat "Start rebar: " (rtos(- max-length khamm) 2 2 ) "\n+\nbend: " (rtos khamm 2 2 )
-                                  "\nEnd rebar: " (rtos remm 2 2) "\n+\nbend: " (rtos khamm 2 2 )))
+                            (alert (strcat "طول بدون خم میلگرد اول: " (rtos(- max-length khamm) 2 2 ) "\n+\nطول خم: " (rtos khamm 2 2 )
+                                  "\nطول بدون خم میلگرد آخر: " (rtos remm 2 2) "\n+\nطول خم: " (rtos khamm 2 2 )))
                           )
                           (progn
                               (setq remm(- length-choice (- max-length overlap-length)  ))
@@ -539,9 +639,9 @@
                           )
                         )
                             
-                        (princ (strcat "Overlap Length: " (rtos overlap-length 2 2 ) 
-                                    " cm. Total count: " (rtos number 2 2 )  ". Number of 12 m rebars:" (rtos number 2 2 ) 
-                                    ". Remaining total length: " (rtos remm 2 2)))  
+                        (princ (strcat "طول اورلپ: " (rtos overlap-length 2 2 ) 
+                                    " cm. کل طول: " (rtos number 2 2 )  ". تعداد میلگردها با طول 12 متر:" (rtos number 2 2 ) 
+                                    ". طول کل باقیماده: " (rtos remm 2 2)))  
                     )
                     (setq length-choice totalLen ) 
                   )
@@ -551,16 +651,45 @@
                     (alert  (strcat (rtos length-choice 2 2 ) "+ ((خم) 2 * " (rtos khamm 2 2 ) ")")   )
 
                     (setq totalLen (+ length-choice (* 2 khamm) ))
+                    (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
+                    (if 
+                          (or(equal qty "a") (equal qty "A"))
+                      (progn
+                        (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
+                        (eza)
+                        (setq dist AddSum)
 
-                    (setq dist (getdist "\nEnter the length of space in which the reinforcements are placed in m: "))
-
-                    (setq space (getreal "\nEnter the spacing between rebars in cm: "))
-                    ; Calculate the number of rebars
-                    (setq cmspace (/ space 100 ) )
-                    (setq num (1+ (fix (/ dist cmspace))))
+                        (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
+                        ; Calculate the number of rebars
+                        (setq cmspace (/ space 100 ) )
+                        (setq num (1+ (fix (/ dist cmspace))))
+                      )
+                      (setq num (atof qty))
+                    )
+                    (setq num (atof qty))
                     (setq tot (* num totalLen))
                     (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
                     (setq total-weight  (* tot unit-weight)) 
+                   (setq space (if space space 0))
+                    (setq position (find-max-number))
+                   (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                    (alert (strcat "this is string: " " "finaltext) )
+                      
+                      (vl-load-com)
+                      (setq mspace (vla-get-modelspace 
+                                        (vla-get-activedocument 
+                                              (vlax-get-acad-object))))
+                        ;;(setq currlayer (vla-get-layer doc))
+                        (setq apt (getpoint "\nInsertion Point: "))
+
+                        (setq LayerName "steels")
+                        
+                        (setq ht (getreal "\nHeight : "))
+                      ;;(vla-put-layer finaltext  "steels")
+                        (command "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+                        (setq thetext (vla-AddText mspace finaltext 
+                                                      (vlax-3d-point apt) ht))
+                      (vla-put-layer thetext LayerName )
                 )
                 
               )
@@ -571,16 +700,28 @@
                     (alert  (strcat (rtos length-choice 2 2 ) "+ ((خم) 2 * " (rtos khamm 2 2 ) ")")   )
                     (setq totalLen (+ length-choice (* 2 khamm) ))
 
-                    (setq dist (getdist "\nEnter the length of space in which the reinforcements are placed in m: "))
+                   (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
+                    (if 
+                          (or(equal qty "a") (equal qty "A"))
+                      (progn
+                        (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
+                        (eza)
+                        (setq dist AddSum)
 
-                    (setq space (getreal "\nEnter the spacing between rebars in cm: "))
-                    ; Calculate the number of rebars
-                    (setq cmspace (/ space 100 ) )
-                    (setq num (1+ (fix (/ dist cmspace))))
+                        (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
+                        ; Calculate the number of rebars
+                        (setq cmspace (/ space 100 ) )
+                        (setq num (1+ (fix (/ dist cmspace))))
+                      )
+                      (setq num (atof qty))
+                    )
+                    (setq num (atof qty))
                     (setq tot (* num totalLen))
                     (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
                     (setq total-weight  (* tot unit-weight)) 
-                   (setq finaltext (strcat  nameOfObject "/"  (itoa position) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                    (setq space (if space space 0))
+                    (setq position (find-max-number))
+                   (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
                     (alert (strcat "this is string: " " "finaltext) )
                       
                       (vl-load-com)
@@ -620,6 +761,8 @@
                         (if 
                           (or(equal bend "b") (equal bend "B"))
                           (progn
+                            (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید:")
+                     
                               (setq kham (* dia  12))
                               (setq khamm (/ kham 1000.))
                               (setq length-choice(- length-choice (- (- max-length khamm)  overlap-length )))
@@ -651,11 +794,42 @@
                     (setq length-choice totalLen ) 
                   )
                 )
-                (progn 
+             
+          
+          )
+          (if (< length-choice 12)
+             (progn 
+               (setq totalLen length-choice)
+              (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
+                            (if 
+                                  (or(equal qty "a") (equal qty "A"))
+                              (progn
+                                (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
+                                (eza)
+                                (setq dist AddSum)
+
+                                (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
+                                ; Calculate the number of rebars
+                                (setq cmspace (/ space 100 ) )
+                                (setq num (1+ (fix (/ dist cmspace))))
+                              )
+                              (progn
+                              (eza)
+                              (setq qty AddSum)
+                              (setq num  qty)
+                              )
+                              
+                            )
+                            (setq num qty)
+                            (setq tot (* num totalLen))
+                            (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+                            (setq total-weight  (* tot unit-weight))
                   
                   (setq kham (* dia  12))
                    (setq khamm (/ kham 1000.))
-                  (setq finaltext (strcat  nameOfObject "/"  (itoa position) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                    (setq space (if space space 0))
+                  (setq position (find-max-number))
+                  (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
                   (alert (strcat "this is string: " " "finaltext) )
                       
                       (vl-load-com)
@@ -673,17 +847,16 @@
                         (setq thetext (vla-AddText mspace finaltext 
                                                       (vlax-3d-point apt) ht))
                       (vla-put-layer thetext LayerName )
-                )
-          
+            )
           )
         )
        )
      )
     (progn
         (setq shapeE '("k" "s1" "s2" "s3" ))
-        (setq shapes (getstring "choose the shape of elements khamoot(k)/135*Sanjaghi(s1)/90*Sanjaghi(s2)/90*135Sanjaghi(s3) [k/s1/s2/s3] "))
+        (setq shapes (getstring "شکل المان را انتخاب کنید khamoot(k)/135*Sanjaghi(s1)/90*Sanjaghi(s2)/90*135Sanjaghi(s3) [k/s1/s2/s3] "))
         (while (not (member   shapes   shapeE))
-        (setq shapes (getstring "choose the shape of elements khamoot(k)/135*Sanjaghi(s1)/90*Sanjaghi(s2)/90*135Sanjaghi(s3) [k/s1/s2/s3] "))
+        (setq shapes (getstring "شکل المان را انتخاب کنید khamoot(k)/135*Sanjaghi(s1)/90*Sanjaghi(s2)/90*135Sanjaghi(s3) [k/s1/s2/s3] "))
         )
         (setq e1 1)
         (while ( > e1 0)
@@ -705,17 +878,27 @@
               (setq cover (getdist "\nInsert cover "))
               (setq stirrup-length (calculate-stirrup-length lengthsn widthsn cover dia))
               
-              (setq dist (getdist "\nEnter the length of space in which the reinforcements are placed in m: "))
-              (sbe)
-              (setq dist totalLen)
-              (setq space (getreal "\nEnter the spacing between rebars in cm: "))
+              (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
+                    (if 
+                          (or(equal qty "a") (equal qty "A"))
+                      (progn
+                        (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
+                        (eza)
+                        (setq dist AddSum)
+
+                        (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
+                        ; Calculate the number of rebars
+                        (setq cmspace (/ space 100 ) )
+                        (setq num (1+ (fix (/ dist cmspace))))
+                      )
+                      (setq num (atof qty))
+                    )
               
-              (setq cmspace (/ space 100 ) )
-              (setq num (1+ (fix (/ dist cmspace))))
               (setq tot (* num stirrup-length))
               (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
               (setq total-weight  (* tot unit-weight))
-              (setq finaltext (strcat  nameOfObject "/"  (itoa position) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos stirrup-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg/" shapes "\n" )) 
+              (setq position (find-max-number))
+              (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos stirrup-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg/" shapes "\n" )) 
               (alert (strcat "this is string: " " "finaltext) )
                             
               (vl-load-com)
@@ -753,7 +936,7 @@
             )
             (put-text)
           ) 
-            (setq khamooot-countinue (getstring "Do you want to continue? [Y/N]"))
+            (setq khamooot-countinue (getstring "در میلگردهای فرعی ادامه می دهید؟? [Y/N]"))
             (if (or (equal khamooot-countinue "n") (equal khamooot-countinue "N"))
             (setq e1 0)
             )
@@ -835,7 +1018,7 @@
       (vl-file-write csv-content csv-file)
       (prompt (strcat "\nCSV file exported: " csv-file))
       )
-    (prompt "\nNo block references found in the selected layer.")
+    (prompt "\nهیچ بلاکی در سرتاسر نقشه یافت نشد.")
     )
   )
 ;;=======================================================================================================================
@@ -876,7 +1059,7 @@
         (vl-file-write (apply 'strcat (mapcar 'strcat csv-content '("\n"))) csv-file)
         (prompt (strcat "\nCSV file exported: " csv-file))
         )
-    (prompt "\nNo block references found in the selected layer.")
+    (prompt "\nهیچ بلاکی در سرتاسر نقشه درآن لایه که می‌خواهید یافت نشد.")
     )
    (vl-load-com)
     ; ask for file path
