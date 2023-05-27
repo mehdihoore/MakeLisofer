@@ -660,11 +660,11 @@
                                     ". طول کل باقیماده: " (rtos remm 2 2)))  
                             (setq space (if space space 0))
                   (setq position (find-max-number))
-                      (setq tot (* max-length number))
+                      (setq tot (* max-length number num))
                    (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
                             (setq total-weight  (* tot unit-weight))
                   
-                  (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos max-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos (* num number) 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos max-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
                   (alert (strcat "this is string: " " "finaltext) )
                       
                       (vl-load-com)
@@ -685,12 +685,12 @@
                       ;;ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp
                        (setq space (if space space 0))
                   (setq position (find-max-number))
-                      (setq toto (* remm number))
+                      (setq toto (* remm num))
                    (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
                             (setq total-weight  (* toto unit-weight))
                   
-                  (setq finaltextover (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos remm 2 2) "/" (rtos toto 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
-                  (alert (strcat "this is string: " " "finaltext) )
+                  (setq finaltextover (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos remm 2 2) "/" (rtos toto 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (alert (strcat "this is string: " " "finaltextover) )
                       
                       (vl-load-com)
                       (setq mspace (vla-get-modelspace 
@@ -726,52 +726,52 @@
                 
               )
           (if (< length-choice 12)
-          (progn
-              (setq kham (* dia  12))
-                    (setq khamm (/ kham 1000.))
-                    (alert  (strcat (rtos length-choice 2 2 ) "+ ((خم) 2 * " (rtos khamm 2 2 ) ")")   )
-                    (setq totalLen (+ length-choice (* 2 khamm) ))
+            (progn
+                (setq kham (* dia  12))
+                      (setq khamm (/ kham 1000.))
+                      (alert  (strcat (rtos length-choice 2 2 ) "+ ((خم) 2 * " (rtos khamm 2 2 ) ")")   )
+                      (setq totalLen (+ length-choice (* 2 khamm) ))
 
-                   (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
-                    (if 
-                          (or(equal qty "a") (equal qty "A"))
-                      (progn
-                        (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
-                        (eza)
-                        (setq dist AddSum)
+                    (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
+                      (if 
+                            (or(equal qty "a") (equal qty "A"))
+                        (progn
+                          (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
+                          (eza)
+                          (setq dist AddSum)
 
-                        (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
-                        ; Calculate the number of rebars
-                        (setq cmspace (/ space 100 ) )
-                        (setq num (1+ (fix (/ dist cmspace))))
+                          (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
+                          ; Calculate the number of rebars
+                          (setq cmspace (/ space 100 ) )
+                          (setq num (1+ (fix (/ dist cmspace))))
+                        )
+                        (setq num (atof qty))
                       )
                       (setq num (atof qty))
-                    )
-                    (setq num (atof qty))
-                    (setq tot (* num totalLen))
-                    (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
-                    (setq total-weight  (* tot unit-weight)) 
-                    (setq space (if space space 0))
-                    (setq position (find-max-number))
-                   (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
-                    (alert (strcat "this is string: " " "finaltext) )
-                      
-                      (vl-load-com)
-                      (setq mspace (vla-get-modelspace 
-                                        (vla-get-activedocument 
-                                              (vlax-get-acad-object))))
-                        ;;(setq currlayer (vla-get-layer doc))
-                        (setq apt (getpoint "\nInsertion Point: "))
-
-                        (setq LayerName "steels")
+                      (setq tot (* num totalLen))
+                      (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+                      (setq total-weight  (* tot unit-weight)) 
+                      (setq space (if space space 0))
+                      (setq position (find-max-number))
+                    (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                      (alert (strcat "this is string: " " "finaltext) )
                         
-                        (setq ht (getreal "\nHeight : "))
-                      ;;(vla-put-layer finaltext  "steels")
-                        (command "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
-                        (setq thetext (vla-AddText mspace finaltext 
-                                                      (vlax-3d-point apt) ht))
-                      (vla-put-layer thetext LayerName )
-          )
+                        (vl-load-com)
+                        (setq mspace (vla-get-modelspace 
+                                          (vla-get-activedocument 
+                                                (vlax-get-acad-object))))
+                          ;;(setq currlayer (vla-get-layer doc))
+                          (setq apt (getpoint "\nInsertion Point: "))
+
+                          (setq LayerName "steels")
+                          
+                          (setq ht (getreal "\nHeight : "))
+                        ;;(vla-put-layer finaltext  "steels")
+                          (command "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+                          (setq thetext (vla-AddText mspace finaltext 
+                                                        (vlax-3d-point apt) ht))
+                        (vla-put-layer thetext LayerName )
+            )
           )
           
             
@@ -793,8 +793,25 @@
                         (if 
                           (or(equal bend "b") (equal bend "B"))
                           (progn
-                            (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید:")
-                     
+                            (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
+                            (if 
+                                  (or(equal qty "a") (equal qty "A"))
+                              (progn
+                                (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
+                                (eza)
+                                (setq dist AddSum)
+
+                                (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
+                                ; Calculate the number of rebars
+                                (setq cmspace (/ space 100 ) )
+                                (setq num (1+ (fix (/ dist cmspace))))
+                              )
+                              (setq num (atof qty))
+                            )
+                            (setq num (atof qty))
+                           
+                            
+                            
                               (setq kham (* dia  12))
                               (setq khamm (/ kham 1000.))
                               (setq length-choice(- length-choice (- (- max-length khamm)  overlap-length )))
@@ -803,10 +820,10 @@
                                     (setq number (1+ number ))
                                     (setq remm (- length-choice (- (* max-length number) (* overlap-length number))))
                               )
-                              (setq remm1(+ remm khamm))
+                              (setq remm(+ remm khamm))
                               (setq length-choice (+ (* max-length  number)  remm1 max-length))
                             (alert (strcat "Start rebar: " (rtos(- max-length khamm) 2 2 ) "\n+\nbend: " (rtos khamm 2 2 )
-                                  "\nEnd rebar: " (rtos remm 2 2) "\n+\nbend: " (rtos khamm 2 2 )))
+                                  "\nEnd rebar: " (rtos (- remm khamm) 2 2) "\n+\nbend: " (rtos khamm 2 2 )))
                           )
                           (progn
                               (setq remm(- length-choice (- max-length overlap-length)  ))
@@ -825,11 +842,11 @@
                       ;;yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
                         (setq space (if space space 0))
                   (setq position (find-max-number))
-                      (setq tot (* max-length number))
+                      (setq tot (* max-length number num))
                    (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
                             (setq total-weight  (* tot unit-weight))
                   
-                  (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos max-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos (* num number) 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos max-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
                   (alert (strcat "this is string: " " "finaltext) )
                       
                       (vl-load-com)
@@ -850,12 +867,12 @@
                       ;;ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp
                        (setq space (if space space 0))
                   (setq position (find-max-number))
-                      (setq toto (* remm number))
+                      (setq toto (* remm num))
                    (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
                             (setq total-weight  (* toto unit-weight))
                   
-                  (setq finaltextover (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos remm 2 2) "/" (rtos toto 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
-                  (alert (strcat "this is string: " " "finaltext) )
+                  (setq finaltextover (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos remm 2 2) "/" (rtos toto 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (alert (strcat "this is string: " " "finaltextover) )
                       
                       (vl-load-com)
                       (setq mspace (vla-get-modelspace 
