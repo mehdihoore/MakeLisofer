@@ -112,6 +112,7 @@
       )
 
       (setvar "cmdecho" 1)
+      (setq cntr (if cntr cntr 0))
       (alert (strcat "\n یافته شد " (itoa cntr) " چیز با مجموع طول: " (rtos totalLen)))
       (princ)
 )
@@ -259,12 +260,20 @@
   (setq pos '())
   (foreach line lines
     (setq s (vl-string-position (ascii "/") line))
-    (setq second (substr line (+ s 2) (strlen line)))
+    (if s
+      (progn
+      (setq second (substr line (+ s 2) (strlen line)))
     (setq s1 (vl-string-position (ascii "/") second))
     (setq poses (atof (substr line (+ s 2) s1)))
-    (setq pos (cons poses pos)))
+    (setq pos (cons poses pos))
+      )
+    )
+  )
   
   (setq max-number (apply 'max pos))
+
+  
+  
   )
 ;;=======================================================================================================================
 ;;=======================================================================================================================
@@ -391,11 +400,7 @@
 ;;=======================================================================================================================
 ;;=======================================================================================================================
  (defun calculate-overlap ()
-                  (setq diameters '("8" "10" "12" "14" "16" "18" "20" "22" "25" "28" "30" "32"))
-                  (setq dia (atoi(getstring t "\nSelect diameter [8/10/12/14/16/18/20/22/25/28/30/32]: ")))
-                  (while (not (member  (rtos dia 2 0)  diameters))
-                    (setq dia (getint "\nInvalid diameter. Enter again: "))
-                  )  
+               
 
                   (setq botF (/ (cdr (assoc dia '((8 . 40) (10 . 40) (12 . 50) (14 . 60) (16 . 65) (18 . 75)
                                                   (20 . 80) (22 . 95) (25 . 120),(28 . 150) (30 . 175) (32 . 200))))))
@@ -409,12 +414,8 @@
                                                     (20 . 100) (22 . 140) (25 . 160) (28 . 175) (30 . 190) (32 . 200))))))
                         
                             
-                   (setq object '("BEAM" "COLUMN" "FOUNDATION" "SLAB" "WALL" ))
-                   (setq nameOfObject (getstring t "دسته‌بندی مورد نظر را انتخاب کنید:[BEAM/COLUMN/FOUNDATION/SLAB/WALL]"))
-                   (while (not (member   nameOfObject   object))
-                      (setq nameOfObject (getstring t "\nانتخابتان غلط است.[BEAM/COLUMN/FOUNDATION/SLAB/WALL] دوباره تلاش کنید: "))
-                    )
-                            (if (equal nameOfObject "BEAM")
+                  
+                            (if (or (equal nameOfObject "b") (equal nameOfObject "B") )
                               
                         (setq beam (getstring  t "\nIs it top or bottom of the beam? [T/B]"))  
                       (if (or (equal beam "T" ) (equal beam "t" ))
@@ -428,7 +429,7 @@
                         )
                       )
                             )
-                            (if (equal nameOfObject "FOUNDATION")
+                            (if (or (equal nameOfObject "f") (equal nameOfObject "F") )
                               
                         (setq foundation (getstring t  "\nIs it top or bottom of the foundation [T/B]"))  
                       (if (or (equal foundation "T" ) (equal foundation "t" ))
@@ -443,7 +444,7 @@
                         )
                       )
                             )
-                            (if (equal nameOfObject "SLAB")
+                            (if (or (equal nameOfObject "s") (equal nameOfObject "S") )
                               
                         (setq slab (getstring  t "\nIs it top or bottom of the Slab [T/B]"))  
                       (if (or (equal slab "T" ) (equal slab "t" ))
@@ -458,7 +459,7 @@
                       )
                             )
                             
-                            (if (equal nameOfObject "WALL")
+                            (if (or (equal nameOfObject "w") (equal nameOfObject "W") )
                               
                         (setq wall (getstring t "\nIs it outside or inside of the wall? [O/I]"))  
                       (if (or (equal wall "O" ) (equal wall "o" ))
@@ -483,34 +484,42 @@
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
-(defun create-stirrup-block (apt tool arz ht)
+(defun create-stirrup-block (apt tool arz ht blockname)
   (vl-load-com)
   (setq doc (vla-get-activedocument (vlax-get-acad-object)))
   (setq mspace (vla-get-modelspace doc))
-
+  (setq tt 0)
+  (setq aa 0)
+  (if (equal tool arz)
+      (progn
+        (setq tt 0.6)
+        (setq aa 0.6))
+      (progn
+        (setq tt 0.6)
+        (setq aa 0.50)))
   (setq prevX (car apt))
   (setq prevY (cadr apt))
   (setq prevZ (caddr apt))
-  (setq offset -2.0)
+  (setq offset -2)
   (setq newY (+ prevY offset))
-  (setq minVal (min (/ arz 10) (/ tool 10)))
+  (setq minVal (min (/ aa 10) (/ tt 10)))
   (setq nx (+ prevX minVal))
   (setq newstartX (list nx prevY prevZ))
   (setq ny (- prevY minVal))
   (setq newstartY (list prevX ny prevZ))
   (setq newApt (list prevX newY prevZ))
-  (command-s "._rectangle" "Fillet" minVal apt "Dimensions" tool arz newApt)
+  (command-s "._rectangle" "Fillet" minVal apt "Dimensions" tt aa newApt)
   (setq rectangle (entlast))
-  (setq newEndX (list (+ nx (* arz 0.35)) (- prevY (* tool 0.35)) prevZ))
-  (setq newEndY (list (+ prevX (* arz 0.35)) (- ny (* tool 0.35)) prevZ))
+  (setq newEndX (list (+ nx (* aa 0.35)) (- prevY (* tt 0.40)) prevZ))
+  (setq newEndY (list (+ prevX (* aa 0.40)) (- ny (* tt 0.35)) prevZ))
   (command "._line" newstartX newEndX "")
   (setq linek1 (entlast))
   (command "._line" newstartY newEndY "")
   (setq linek2 (entlast))
   (setq LayerName "steels")
 
-  (setq text1po (list (- prevX (* ht 2.5)) (- prevY (/ arz 2)) prevZ))
-  (setq text2po (list (+ prevX (/ tool 2.5)) (+ prevY (/ ht 2)) prevZ))
+  (setq text1po (list (- prevX (* ht 1.5)) (- prevY (/ aa 2)) prevZ))
+  (setq text2po (list (+ prevX (/ tt 2)) (+ prevY (/ ht 4)) prevZ))
   (command "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
   (setq text1 (rtos arz 2 2))
   (setq text2 (rtos tool 2 2))
@@ -528,17 +537,17 @@
   (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
   (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
 
-  (setq blockname (getstring "نامی یکتا برای بلاک بگذارید: "))
+  ;| (setq blockname (getstring "نامی یکتا برای بلاک بگذارید: "))
     (while (tblsearch "BLOCK" blockname)
       (progn
         (setq blockname "")
         (prompt "\nنامی که گذارده‌اید، موجود است، نامی دیگر بگذارید.")
         (setq blockname (getstring "نامی یکتا برای بلاک بگذارید: "))
       )
-    )
+    ) |;
   
-  (setq startss (list (+ prevX tool) (+ prevY (* 4 ht)) prevZ))
-  (setq endss (list (- prevX (* ht 2.5)) (- prevY arz) prevZ))
+  (setq startss (list (+ prevX tt) (+ prevY (* 4 ht)) prevZ))
+  (setq endss (list (- prevX (* ht 2.5)) (- prevY aa) prevZ))
   (setq blockpoints (ssget "W" startss endss))
   (command "._-block" blockname apt blockpoints "")
   (setq blockref (entlast))
@@ -559,24 +568,31 @@
 (defun put-text ()
    (setq objects '("b" "c" "f" "s" "w" "B" "C" "F" "S" "W" ))
     (setq mainlist '("m" "p" "M" "P" ))
-    (setq nameOfObject (getstring t " دسته‌بندی مورد نظر را انتخاب کنید: BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
-  (while (not (member   nameOfObject   objects))
-    (setq nameOfObject (getstring t " دسته بندی مورد نظر را انتخاب کنید: BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
-  )
+    
   (setq position (FIND-MAX-NUMBER))
   (setq mainrebar (getstring "\nاصلی(main) Or فرعی(part)[main/part]"))
    (while (not (member   mainrebar   mainlist))
     (setq mainrebar (getstring "\nاصلی(M) Or فرعی(P)[M/P]"))
    )
-  (setq diameters '("8" "10" "12" "14" "16" "18" "20" "22" "25" "28" "30" "32"))
-              (setq dia (atoi(getstring t "\nسایز میلگرد را انتخاب کنید: [8/10/12/14/16/18/20/22/25/28/30/32]: ")))
-              (while (not (member  (rtos dia 2 0)  diameters))
-                (setq dia (getint "\nسایز اشتباه است. دوباره وارد کنید: "))
-              )
+  
+ 
+  
+  
   (if (or (equal mainrebar "main") (equal mainrebar "m") (equal mainrebar "M") (equal mainrebar "Main") (equal mainrebar "MAIN"))
-    (progn
-          
-      (setq length-choice (getreal "\nطول میلگرد را بنویسید یا  [0] برای سلکت کردن "))
+    (progn   
+      
+      (setq em 1)
+        (while ( > em 0)
+          (setq nameOfObject (getstring t " دسته‌بندی مورد نظر را انتخاب کنید: BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
+  (while (not (member   nameOfObject   objects))
+    (setq nameOfObject (getstring t " دسته بندی مورد نظر را انتخاب کنید: BEAM/COLUMN/FOUNDATION/SLAB/WALL [B/C/F/S/W]"))
+  )
+   (setq diameters '("8" "10" "12" "14" "16" "18" "20" "22" "25" "28" "30" "32"))
+              (setq dia (atoi(getstring t "\nSelect diameter [8/10/12/14/16/18/20/22/25/28/30/32]: ")))
+              (while (not (member  (rtos dia 2 0)  diameters))
+                (setq dia (getint "\nInvalid diameter. Enter again: "))
+              )
+          (setq length-choice (getreal "\nطول میلگرد را بنویسید یا  [0] برای سلکت کردن "))
       (if (= length-choice 0)
         (progn
               (sbe)
@@ -642,38 +658,14 @@
                         (princ (strcat "طول اورلپ: " (rtos overlap-length 2 2 ) 
                                     " cm. کل طول: " (rtos number 2 2 )  ". تعداد میلگردها با طول 12 متر:" (rtos number 2 2 ) 
                                     ". طول کل باقیماده: " (rtos remm 2 2)))  
-                    )
-                    (setq length-choice totalLen ) 
-                  )
-                  (setq kham (* dia  12))
-                    (setq khamm (/ kham 1000.))
-                    
-                    (alert  (strcat (rtos length-choice 2 2 ) "+ ((خم) 2 * " (rtos khamm 2 2 ) ")")   )
-
-                    (setq totalLen (+ length-choice (* 2 khamm) ))
-                    (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
-                    (if 
-                          (or(equal qty "a") (equal qty "A"))
-                      (progn
-                        (princ "\nطول فضایی که میلگردها با فاصله چیده می‌شوند را به متر وارد کنید: ")
-                        (eza)
-                        (setq dist AddSum)
-
-                        (setq space (getreal "\nفاصله بین میلگردها را به سانتیمتر وارد کنید: "))
-                        ; Calculate the number of rebars
-                        (setq cmspace (/ space 100 ) )
-                        (setq num (1+ (fix (/ dist cmspace))))
-                      )
-                      (setq num (atof qty))
-                    )
-                    (setq num (atof qty))
-                    (setq tot (* num totalLen))
-                    (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
-                    (setq total-weight  (* tot unit-weight)) 
-                   (setq space (if space space 0))
-                    (setq position (find-max-number))
-                   (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos num 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos totalLen 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
-                    (alert (strcat "this is string: " " "finaltext) )
+                            (setq space (if space space 0))
+                  (setq position (find-max-number))
+                      (setq tot (* max-length number))
+                   (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+                            (setq total-weight  (* tot unit-weight))
+                  
+                  (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos max-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (alert (strcat "this is string: " " "finaltext) )
                       
                       (vl-load-com)
                       (setq mspace (vla-get-modelspace 
@@ -690,6 +682,46 @@
                         (setq thetext (vla-AddText mspace finaltext 
                                                       (vlax-3d-point apt) ht))
                       (vla-put-layer thetext LayerName )
+                      ;;ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp
+                       (setq space (if space space 0))
+                  (setq position (find-max-number))
+                      (setq toto (* remm number))
+                   (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+                            (setq total-weight  (* toto unit-weight))
+                  
+                  (setq finaltextover (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos remm 2 2) "/" (rtos toto 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (alert (strcat "this is string: " " "finaltext) )
+                      
+                      (vl-load-com)
+                      (setq mspace (vla-get-modelspace 
+                                        (vla-get-activedocument 
+                                              (vlax-get-acad-object))))
+                        ;;(setq currlayer (vla-get-layer doc))
+                       (setq prevX (car apt))
+                          (setq prevY (cadr apt))
+                          (setq prevZ (caddr apt))
+
+                          ; Set the offset distance for the new text below the previous text
+                          (setq offset (* -2 ht))  ; Adjust this value as needed
+
+                          ; Calculate the new Y-coordinate for the insertion point
+                          (setq newY (+ prevY offset))
+
+                          ; Create the new insertion point with the updated coordinates
+                          (setq newApt (list prevX newY prevZ))
+
+                        (setq LayerName "steels")
+                        
+                        (setq ht (getreal "\nHeight : "))
+                      ;;(vla-put-layer finaltext  "steels")
+                        (command "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+                        (setq thetextover (vla-AddText mspace finaltextover 
+                                                      (vlax-3d-point newApt) ht))
+                      (vla-put-layer thetextover LayerName )
+                    )
+                    (setq length-choice totalLen ) 
+                  )
+                  
                 )
                 
               )
@@ -790,6 +822,67 @@
                         (princ (strcat "Overlap Length: " (rtos overlap-length 2 2 ) 
                                     " cm. Total count: " (rtos number 2 2 )  ". Number of 12 m rebars:" (rtos number 2 2 ) 
                                     ". Remaining total length: " (rtos remm 2 2)))  
+                      ;;yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+                        (setq space (if space space 0))
+                  (setq position (find-max-number))
+                      (setq tot (* max-length number))
+                   (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+                            (setq total-weight  (* tot unit-weight))
+                  
+                  (setq finaltext (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos max-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (alert (strcat "this is string: " " "finaltext) )
+                      
+                      (vl-load-com)
+                      (setq mspace (vla-get-modelspace 
+                                        (vla-get-activedocument 
+                                              (vlax-get-acad-object))))
+                        ;;(setq currlayer (vla-get-layer doc))
+                        (setq apt (getpoint "\nInsertion Point: "))
+
+                        (setq LayerName "steels")
+                        
+                        (setq ht (getreal "\nHeight : "))
+                      ;;(vla-put-layer finaltext  "steels")
+                        (command "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+                        (setq thetext (vla-AddText mspace finaltext 
+                                                      (vlax-3d-point apt) ht))
+                      (vla-put-layer thetext LayerName )
+                      ;;ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp
+                       (setq space (if space space 0))
+                  (setq position (find-max-number))
+                      (setq toto (* remm number))
+                   (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+                            (setq total-weight  (* toto unit-weight))
+                  
+                  (setq finaltextover (strcat  nameOfObject "/"  (rtos (+ position 1) 2 0) "/" (rtos number 2 0) " \U+00D8" (rtos dia 2 0) "/" (rtos space 2 0) " L=" (rtos remm 2 2) "/" (rtos toto 2 2) "m/" (rtos total-weight 2 2) " kg\n" )) 
+                  (alert (strcat "this is string: " " "finaltext) )
+                      
+                      (vl-load-com)
+                      (setq mspace (vla-get-modelspace 
+                                        (vla-get-activedocument 
+                                              (vlax-get-acad-object))))
+                        ;;(setq currlayer (vla-get-layer doc))
+                       (setq prevX (car apt))
+                          (setq prevY (cadr apt))
+                          (setq prevZ (caddr apt))
+
+                          ; Set the offset distance for the new text below the previous text
+                          (setq offset (* -2 ht))  ; Adjust this value as needed
+
+                          ; Calculate the new Y-coordinate for the insertion point
+                          (setq newY (+ prevY offset))
+
+                          ; Create the new insertion point with the updated coordinates
+                          (setq newApt (list prevX newY prevZ))
+
+                        (setq LayerName "steels")
+                        
+                        (setq ht (getreal "\nHeight : "))
+                      ;;(vla-put-layer finaltext  "steels")
+                        (command "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+                        (setq thetextover (vla-AddText mspace finaltextover 
+                                                      (vlax-3d-point newApt) ht))
+                      (vla-put-layer thetextover LayerName )
                     )
                     (setq length-choice totalLen ) 
                   )
@@ -797,7 +890,7 @@
              
           
           )
-          (if (< length-choice 12)
+          (if (and (< length-choice 12) (= length-choice 12))
              (progn 
                (setq totalLen length-choice)
               (setq qty (getstring "تعداد میلگردها را وارد کنید یا برای محاسبه [a] را بفشارید."))
@@ -850,8 +943,13 @@
             )
           )
         )
-       )
      )
+         (setq main-countinue (getstring "در میلگردهای اصلی ادامه می دهید؟? [Y/N]"))
+            (if (or (equal main-countinue "n") (equal main-countinue "N"))
+            (setq em 0)
+            )
+        )
+   )
     (progn
         (setq shapeE '("k" "s1" "s2" "s3" ))
         (setq shapes (getstring "شکل المان را انتخاب کنید khamoot(k)/135*Sanjaghi(s1)/90*Sanjaghi(s2)/90*135Sanjaghi(s3) [k/s1/s2/s3] "))
@@ -893,7 +991,7 @@
                       )
                       (setq num (atof qty))
                     )
-              
+              (setq space (if space space 0))
               (setq tot (* num stirrup-length))
               (setq unit-weight (/ (cdr (assoc dia '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
               (setq total-weight  (* tot unit-weight))
@@ -931,8 +1029,17 @@
 
                           ; Create the new insertion point with the updated coordinates
                           (setq newApt (list prevX newY prevZ))
-
-              (create-stirrup-block newApt lengthsn widthsn ht)
+                        (setq blockname (strcat  nameOfObject   (rtos (+ position 1) 2 0)) )
+                        (while (tblsearch "BLOCK" blockname)
+                          (progn
+                            (setq nnn 1)
+                            (setq blockname "")
+                            
+                            (setq blockname (strcat  nameOfObject   (rtos (+ position 1) 2 0) "0" (itoa nnn) ) )
+                            (setq nnn (1+ nnn))
+                          )
+                        )
+              (create-stirrup-block newApt lengthsn widthsn ht blockname)
             )
             (put-text)
           ) 
@@ -1092,6 +1199,7 @@
 
 (defun C:elu (/ tbl repeat-prompt)
   (create-layer "steels")
+  (create-layer "blocks1285785")
   (setq j 1)
   (setq q0 (ssget "ALL" '((8 . "steels") (0 . "text"))))
 
