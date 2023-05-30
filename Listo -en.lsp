@@ -202,10 +202,6 @@
           
         )
         ;release objects
-        ;;(vlax-release-object del)
-        ;| (vlax-release-object Cells)
-
-        ;;(vlax-release-object XLcel)
         (vlax-release-object XLash)
         (vlax-release-object XLwbk)
         (vlax-release-object XLapp)
@@ -537,12 +533,12 @@
   (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
   (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
 
-  ;| (setq blockname (getstring "نامی یکتا برای بلاک بگذارید: "))
+  
     (while (tblsearch "BLOCK" blockname)
       (progn
         (setq blockname "")
-        (prompt "\nنامی که گذارده‌اید، موجود است، نامی دیگر بگذارید.")
-        (setq blockname (getstring "نامی یکتا برای بلاک بگذارید: "))
+        (prompt "\nPut a unic name on it: ")
+        (setq blockname (getstring "Put a unic name on it: "))
       )
     ) |;
   
@@ -1146,7 +1142,7 @@
       (vl-file-write csv-content csv-file)
       (prompt (strcat "\nCSV file exported: " csv-file))
       )
-    (prompt "\nهیچ بلاکی در سرتاسر نقشه یافت نشد.")
+    (prompt "\nNo Block!")
     )
   )
 ;;=======================================================================================================================
@@ -1218,7 +1214,7 @@
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 
-(defun C:elu (/ tbl repeat-prompt)
+(defun C:elu ()
   (create-layer "steels")
   (create-layer "blocks1285785")
   (setq j 1)
@@ -1241,205 +1237,3 @@
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
-
-
-(defun c:T_export (/ *error* file sset ename lst i p string)
-  (vl-load-com)
-  (defun *error* (s)
-    (if	file
-      (close file)
-    )
-    (cond
-      ((not s))
-      ((member s '("Function cancelled" "quit / exit abort")))
-      ((princ (strcat "\n---->Error:" s)))
-    )
-    (princ)
-  )
-  (if (setq sset (ssget "_:L" '((0 . "TEXT,MTEXT"))))
-    (progn
-      (if (setq	file
-		 (open (strcat (getvar 'dwgprefix) "Text Coordinates.csv")
-		       "w"
-		 )
-	  )
-	(progn
-	  (write-line (strcat "String Name" "," "X" "," "Y") file)
-	  (repeat (setq i (sslength sset))
-	    (setq ename (entget (ssname sset (setq i (1- i)))))
-	    (if
-	      (or
-		(= "MTEXT" (cdr (assoc 0 ename)))
-		(and
-		  (zerop (cdr (assoc 72 ename)))
-		  (zerop (cdr (assoc 73 ename)))
-		)
-	      )
-     
-        (setq p (cdr (assoc 10 ename)))
-	       (setq p (cdr (assoc 11 ename)))
- 
-	    )
-	    (setq string (cdr (assoc 1 ename)))
-    
-	    (write-line
-	      (strcat string )
-	      file
-	    )
-	  )
-	  (close file)
-	  (alert "\nVertex Points exported to csv file.")
-	  (alert (strcat "File saved in - "
-			 (getvar 'dwgprefix)
-			 "TextOnly.csv"
-		 )
-	  )
-
-	)
-	(alert "\nCSV file Currenty running, Close it first.")
-      )
-    )
-    (*error* "Nothing selected")
-  )
-  (*error* nil)
-  (princ)
-)
-;;=======================================================================================================================
-;;=======================================================================================================================
-;;=======================================================================================================================
-(defun c:T_export (/    *error* file sset ename lst i p string)
-   
-  (vl-load-com)
-  (defun *error* (s)
-    (if	file
-      (close file)
-    )
-    (cond
-      ((not s))
-      ((member s '("Function cancelled" "quit / exit abort")))
-      ((princ (strcat "\n---->Error:" s)))
-    )
-    (princ)
-  )
-
-  (if (setq sset (ssget "_:L" '((0 . "TEXT,MTEXT"))))
-    (progn
-      (if (setq	file
-		 (open (strcat (getvar 'dwgprefix) "TextOnly.csv")
-		       "w"
-		 )
-	  )
-	(progn
-	  (write-line (strcat "String Name" ) file)
-   (command "._txt2mtxt" )
-	  (repeat (setq i (sslength sset))
-	    (setq ename (entget (ssname sset (setq i (1- i)))))
-	    (if
-	      (or
-		(= "MTEXT" (cdr (assoc 0 ename)))
-		(and
-		  (zerop (cdr (assoc 72 ename)))
-		  (zerop (cdr (assoc 73 ename)))
-		)
-	      )
-         (setq p (cdr (assoc 10 ename)))
-	       (setq p (cdr (assoc 11 ename)))
- 
-	    )
-	    (setq string (cdr (assoc 1 ename)))
-    
-	    (write-line
-	      (strcat string )
-	      file
-	    )
-	  )
-	  (close file)
-	  (alert "\nVertex Points exported to csv file.")
-	  (alert (strcat "File saved in - "
-			 (getvar 'dwgprefix)
-			 "TextOnly.csv"
-		 )
-	  )
-
-	  )
-	    (alert "\nCSV file Currenty running, Close it first.")
-      )
-    )
-    (*error* "Nothing selected")
-   )
-  (*error* nil)
-  (princ)
-)
-
-
-
-(defun c:QQQQQTEXTFIND (/ CELL FILENAME I ICOL INS1 IROW IROWS RNG SSET XLAPP XLBOOK XLCELL XLFRANGE XLRANGE XLRANGEC XLSHEET)
-  (vl-load-com)
-  
-  
-  (if (AND
-	(setq sset (ssget '((-4 . "<OR") (0 . "MTEXT") (0 . "TEXT") (-4 . "OR>"))))
-	(setq fileName (getfiled "Select Excel file to find cell address :" (getvar "dwgprefix") "xlsx;xls" 16))
-	
-	)
-    (progn
-      (setq xlApp (vlax-create-object "Excel.Application"))
-	(vlax-put-property xlApp "Visible" :vlax-true)
-	(setq xlBook (vlax-invoke-method (vlax-get-property xlApp 'WorkBooks) "Open" fileName ) )
-	(vlax-invoke-method xlBook "Activate")
-	(setq xlSheet (vlax-get-property (vlax-get-property xlBook "WorkSheets") "Item" 1) )
-
-	(setq xlRangeC (vlax-invoke-method xlSheet "Activate") )
-	 (setq xlRange (vlax-get-property xlSheet "Range" "A1:A1000"))
-	  (vlax-invoke-method xlRange "Select")
-         (setq iCol (vlax-get-property xlRange "Column"))
-	(setq iRows (vlax-get-property(vlax-get-property xlRange "Rows") "Count" )iRow  (vlax-get-property xlRange "Row") )
-	(setq rng (vlax-get-property xlApp 'Cells))
-
-      
-      (setq i 0)
-      (repeat (sslength sset)
-        
-	(setq xlCell (vlax-invoke-method
-      xlRange
-      "Find"
-      (vlax-make-variant (vla-get-TEXTSTRING (vlax-ename->vla-object (ssname sset i)) ))
-      xlFRange
-      -4163
-      1
-      1
-      1
-      nil
-      nil
-           )
-     )
-
- (setq cell (vlax-variant-value (vlax-get-property rng 'Item (vlax-get-property xlCell "Row") (+ 1 (vlax-get-property xlCell "Column")) )     )  )
-
-                     (setq ins1 (vlax-safearray->list (vlax-variant-value (vla-get-insertionpoint (vlax-ename->vla-object (ssname sset i))))))
-                    
-	
-
-	(entmakex (list '(0 . "MTEXT")
-                       '(100 . "AcDbEntity")
-		   '(67 . 0) '(8 . "0") '(62 . 2)
-		   '(6 . "Continuous")
-		   '(100 . "AcDbMText")
-		   (cons 10  (LIST (+ 241 (CAR ins1)) (CADR ins1) (CADDR ins1) ))
-		   '(40 . 100) '(41 . 1029.137964877809)
-		   '(46 . 0) '(71 . 1) '(72 . 5)
-		   (cons 1   (RTOS (vlax-variant-value  (vlax-get-property cell 'value2)) 2 2 ))
-		   '(7 . "NOTE") '(11 1 0 0)
-		   '(42 . 133.3333333333333) '(43 . 100)
-		   '(50 . 0) '(73 . 1) '(44 . 1)
- 
-                            ) 
-                      )
-	
-        (setq i (1+ i))
-      )
-      
-    )
-  )
-  (princ)
-)
