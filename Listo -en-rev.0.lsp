@@ -52,7 +52,7 @@
 
   ;; Print the final value of AddSum with the specified format
   (princ (strcat "\nAddSum = " (rtos AddSum *lunits) "  \[" (rtos AddSum 2 8) "]"))
-
+  (if (or(equal scale "")(equal scale nil))(setq scale 1))
   ;; Divide AddSum by the scale number entered by the user
   (setq AddSum (/ addSum scale))
 
@@ -92,97 +92,166 @@
       )))
   )
 ;;=======================================================================================================================
-;;=======================================================================================================================
+;; This function calculates the total length of selected entities or based on user input.
+;;The code calculates the total length of selected entities or based on user input. 
+;;It first sets the system variable "cmdecho" to 0 to suppress command echoing.
+;;The code defines three helper functions: getArc, getLine, and getPoly. 
+;;getArc uses the lengthen command to get the length of an arc entity.
+;; getLine calculates the length of a line entity based on its start and end points. getPoly uses 
+;;the area command to get the perimeter of a polygonal entity.
+;;The code prompts the user to choose between inputting distances directly or selecting shapes. 
+;;If the user selects shapes, the code checks for a valid selection set using ssget. 
+;;It then initializes variables for the total length and a counter.
+;;The code enters a loop to process each selected entity. 
+;;It determines the type of each entity using the entget function and calculates the length accordingly 
+;;using the helper functions. 
+;;The entity type and its length are displayed to the user.
+;;If the user chooses to input distances directly, the code prompts for the input using 
+;;EZA and assigns the value to AddSum, which represents the total length.
+;;After processing the entities or input distance, the code restores 
+;;the command echoing by setting "cmdecho" to 1. It then determines the total count of entities based on the counter 
+;;value and displays the result using an alert dialog.
+;;Finally, the code ends by executing (princ) to return a null value.===========================
 ;;=======================================================================================================================
 (defun sbe ()
-      (setvar "cmdecho" 0)
+  (setvar "cmdecho" 0)
 
-      (defun getArc (en)
-        (command "lengthen" en "")
-        (getvar "perimeter")
-      )
+  ;; Function to get the length of an arc entity
+  (defun getArc (en)
+    (command "lengthen" en "")
+    (getvar "perimeter")
+  )
 
-      (defun getLine (en)
-        (setq enlist (entget en))
-        (distance (cdr (assoc 10 enlist)) (cdr (assoc 11 enlist)))
-      )
+  ;; Function to get the length of a line entity
+  (defun getLine (en)
+    (setq enlist (entget en))
+    (distance (cdr (assoc 10 enlist)) (cdr (assoc 11 enlist)))
+  )
 
-      (defun getPoly (en)
-        (command "area" "Object" en)
-        (getvar "perimeter")
-      )
-    (setq entekhab (getstring t "Do you want put dist(d) or select shapes(s) [d/s]"))
-      (if (or (equal entekhab "s")(equal entekhab "S"))
+  ;; Function to get the perimeter of a polygonal entity
+  (defun getPoly (en)
+    (command "area" "Object" en)
+    (getvar "perimeter")
+  )
+
+  ;; Prompt the user to choose between using distances or selecting shapes
+  (setq entekhab (getstring t "Do you want put dist(d) or select shapes(s) [d/s]"))
+
+  (if (or (equal entekhab "s") (equal entekhab "S"))
+    (progn
+      ;; User selected to select shapes
+      (if (setq eset (ssget))
         (progn
-        (if (setq eset (ssget))
-            (progn
-                (setq totalLen 0)
-                (setq cntr 0)
-                (while (< cntr (sslength eset))
-                  (setq en (ssname eset cntr))
-                  (setq enlist (entget en))
-                  (setq enType (cdr (assoc 0 enlist)))
-                  (cond
-                    ((= enType "ARC") (setq len (getArc en)))
-                    ((= enType "CIRCLE") (setq len (getPoly en)))
-                    ((= enType "ELLIPSE") (setq len (getPoly en)))
-                    ((= enType "LINE") (setq len (getLine en)))
-                    ((= enType "LWPOLYLINE") (setq len (getPoly en)))
-                    ((= enType "POLYLINE") (setq len (getPoly en)))
-                    ((= enType "SPLINE") (setq len (getPoly en)))
-                    (T (setq len 0.0))
-                  )
-                  (while (< (strlen enType) 12) (setq enType (strcat enType " ")))
-                  
-                  (princ enType)
-                  (princ "\n Found ")
-                  (princ " with a length of: ")
-                  (princ (rtos len))
-                  (setq totalLen (+ totalLen len))
-                  (setq cntr (+ cntr 1))
-                )
-              )
+          (setq totalLen 0)
+          (setq cntr 0)
+
+          ;; Loop over each selected entity
+          (while (< cntr (sslength eset))
+            (setq en (ssname eset cntr))
+            (setq enlist (entget en))
+            (setq enType (cdr (assoc 0 enlist)))
+
+            ;; Determine the entity type and calculate the length accordingly
+            (cond
+              ((= enType "ARC") (setq len (getArc en)))
+              ((= enType "CIRCLE") (setq len (getPoly en)))
+              ((= enType "ELLIPSE") (setq len (getPoly en)))
+              ((= enType "LINE") (setq len (getLine en)))
+              ((= enType "LWPOLYLINE") (setq len (getPoly en)))
+              ((= enType "POLYLINE") (setq len (getPoly en)))
+              ((= enType "SPLINE") (setq len (getPoly en)))
+              (T (setq len 0.0))
+            )
+
+            ;; Format and display the entity type and its length
+            (while (< (strlen enType) 12) (setq enType (strcat enType " ")))
+            (princ enType)
+            (princ "\n Found ")
+            (princ " with a length of: ")
+            (princ (rtos len))
+
+            ;; Update the total length and increment the counter
+            (setq totalLen (+ totalLen len))
+            (setq cntr (+ cntr 1))
           )
         )
-        (progn
-         (princ "put dist:")
-        (EZA)
-        (setq totalLen AddSum)
-        )
-       
-                    
       )
+    )
+    (progn
+      ;; User selected to input distances
+      (princ "put dist:")
+      (EZA)
+      (setq totalLen AddSum)
+    )
+  )
 
-      (setvar "cmdecho" 1)
-      (setq cntr (if cntr cntr 0))
-      (alert (strcat "\n Found " (itoa cntr) " entitie(s) with a Total Length of " (rtos totalLen)))
-      (princ)
+  ;; Restore command echo
+  (setvar "cmdecho" 1)
+
+  ;; Get the total count of entities and display the result
+  (setq cntr (if cntr cntr 0))
+  (alert (strcat "\n Found " (itoa cntr) " entitie(s) with a Total Length of " (rtos totalLen)))
+  (princ)
 )
+
 ;;=======================================================================================================================
+;; This function splits a string into lines based on specific characters.
+;;The code takes a string str as input and splits it into lines based 
+;;on specific delimiter characters ("B", "C", "S", "F", "W"). 
+;;It initializes an empty list lines to store the resulting lines and an 
+;;empty string line to keep track of the current line being built.
 ;;=======================================================================================================================
-;;=======================================================================================================================
+
 (defun split-string-to-lines (str)
   (vl-load-com)
+
+  ;; Initialize the variable to store the lines
   (setq lines '())
+
+  ;; Initialize the variable to store the current line
   (setq line "")
+
+  ;; Initialize the variable to keep track of the string index
   (setq i 1)
+
+  ;; Get the length of the input string
   (setq leng (strlen str))
+
+  ;; Iterate over each character in the string
   (while (< i leng)
     (setq ch (substr str i 1))
+
+    ;; Check if the character is a delimiter (B, C, S, F, W)
     (if (or (equal ch "B") (equal ch "C") (equal ch "S") (equal ch "F") (equal ch "W"))
         (progn
+          ;; Trim any trailing newline character from the line
           (setq line (vl-string-right-trim "\n" line))
+
+          ;; Add the line to the list of lines
           (setq lines (cons line lines))
+
+          ;; Reset the line variable for the next line
           (setq line "")
         )
     )
+
+    ;; Append the character to the current line
     (setq line (strcat line ch))
+
+    ;; Move to the next character
     (setq i (+ i 1))
   )
+
+  ;; Trim any trailing newline character from the last line
   (setq line (vl-string-right-trim "\n" line))
+
+  ;; Add the last line to the list of lines
   (setq lines (cons line lines))
+
+  ;; Reverse the order of lines to maintain the original order
   (reverse lines)
 )
+
 ;;=======================================================================================================================
 ;;The find-max-number defun includes the logic to check for missing numbers and assigns the appropriate value to max-number. 
 ;If there is a missing number, it updates max-number to be the missing number. ;
@@ -237,44 +306,65 @@
  max-number
 )
 
-
 ;;====================================================================================================================
+;; This function calculates the sums of quantities for each pose in a list of poseRebars.
 ;;====================================================================================================================
-
 (defun calculate-pose-sums (poseRebars)
-  
-  
 
-  
+  ;; Initialize the variable to store the pose sums
   (setq poseSums '())
+
+  ;; Iterate over each item in poseRebars
   (foreach item poseRebars
     (setq pose (car item)
           quantity (cdr item))
+
+    ;; Check if the pose already exists in poseSums
     (setq existingPose (assoc pose poseSums))
+
+    ;; If the pose already exists, update the quantity
     (if existingPose
       (setq existingQuantity (cdr existingPose)
             newQuantity (+ existingQuantity quantity))
       (setq newQuantity quantity))
+
+    ;; Update poseSums by adding the pose and its new quantity
+    ;; and removing any duplicates of the pose
     (setq poseSums (cons (cons pose newQuantity) (vl-remove (lambda (x) (equal pose (car x))) poseSums))))
   
+  ;; Initialize the variable to store the maximum pose sums
   (setq maxPoseSums '())
+
+  ;; Iterate over each item in poseSums
   (foreach item poseSums
     (setq pose (car item)
           quantity (cdr item))
+
+    ;; Check if the pose already exists in maxPoseSums
     (setq existingPose (assoc pose maxPoseSums))
+
+    ;; If the pose already exists, update the quantity to the maximum value
     (if existingPose
       (setq existingQuantity (cdr existingPose)
             newQuantity (max existingQuantity quantity))
       (setq newQuantity quantity))
+
+    ;; Update maxPoseSums by adding the pose and its new maximum quantity
+    ;; and removing any duplicates of the pose
     (setq maxPoseSums (cons (cons pose newQuantity) (vl-remove (lambda (x) (equal pose (car x))) maxPoseSums))))
   
+  ;; Initialize the variable to store the unique pose sums
   (setq poslist '())
+
+  ;; Iterate over each item in maxPoseSums
+  ;; and add the item to poslist if it doesn't already exist
   (foreach item maxPoseSums
     (if (not (assoc (car item) poslist))
       (setq poslist (cons item poslist))))
   
-  
+  ;; Return the final poslist with unique pose sums
   poslist)
+
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
@@ -496,8 +586,12 @@
                             
                   
                             (if (or (equal nameOfObject "b") (equal nameOfObject "B") )
-                              
-                        (setq beam (getstring  t "\nIs it top or bottom of the beam? [T/B]"))  
+                          (progn 
+                            (setq vali '("T" "B"))
+                        (setq beam (strcase (getstring  t "\nIs it top or bottom of the beam? [T/B]")))
+                              (while (not (member   beam   vali))
+                                  (setq beam (strcase (getstring  t "\nIs it top or bottom of the beam? [T/B]")))
+                              )
                       (if (or (equal beam "T" ) (equal beam "t" ))
                         (progn
                  
@@ -508,10 +602,13 @@
                           (setq overlap-length otherB)
                         )
                       )
-                            )
+                            ))
                             (if (or (equal nameOfObject "f") (equal nameOfObject "F") )
-                              
-                        (setq foundation (getstring t  "\nIs it top or bottom of the foundation [T/B]"))  
+                       (progn     
+                        (setq foundation (strcase (getstring t  "\nIs it top or bottom of the foundation [T/B]")))  
+                              (while (not (member   foundation   vali))
+                                  (setq foundation (strcase (getstring t  "\nIs it top or bottom of the foundation [T/B]")))
+                              ) 
                       (if (or (equal foundation "T" ) (equal foundation "t" ))
                         (progn
                    
@@ -523,10 +620,13 @@
                         
                         )
                       )
-                            )
+                            ))
                             (if (or (equal nameOfObject "s") (equal nameOfObject "S") )
                               
-                        (setq slab (getstring  t "\nIs it top or bottom of the Slab [T/B]"))  
+                        (progn (setq slab (strcase (getstring  t "\nIs it top or bottom of the Slab [T/B]")))  
+                          (while (not (member   slab   vali))
+                                  (setq slab (strcase (getstring  t "\nIs it top or bottom of the Slab [T/B]")))
+                              ) 
                       (if (or (equal slab "T" ) (equal slab "t" ))
                         (progn
                   
@@ -537,11 +637,14 @@
                           (setq overlap-length botF)
                         )
                       )
-                            )
+                            ))
                             
                             (if (or (equal nameOfObject "w") (equal nameOfObject "W") )
-                              
-                        (setq wall (getstring t "\nIs it outside or inside of the wall? [O/I]"))  
+                        (progn (setq wvali '("O" "I"))      
+                        (setq wall (strcase(getstring t "\nIs it outside or inside of the wall? [O/I]")))
+                              (while (not (member   wall   wvali))
+                                  (setq wall (strcase(getstring t "\nIs it outside or inside of the wall? [O/I]")))
+                              ) 
                       (if (or (equal wall "O" ) (equal wall "o" ))
                         (progn
                    
@@ -552,9 +655,9 @@
                     
                           (setq overlap-length otherB)
                         )
-                      )
+                      ))
                             )
-                            (if (equal nameOfObject "COLUMN")
+                            (if (or (equal nameOfObject "COLUMN")(equal nameOfObject "C")(equal nameOfObject "column"))
                           
                               (setq overlap-length column)
                             )
@@ -565,296 +668,358 @@
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 (defun create-stirrup-block (apt tool arz ht blockname)
-      (vl-load-com)
-      (setq doc (vla-get-activedocument (vlax-get-acad-object)))
-      (setq mspace (vla-get-modelspace doc))
-      (setq tt 0)
-      (setq aa 0)
-      (setq text1po 0)
-      (setq text2po 0)
-      (setq 1po 0 )
-      (setq 2po 0 )
-      (if (equal tool arz)
-          (progn
-            (setq tt 0.6)
-            (setq aa 0.6))
-          (progn
-            (setq tt 0.6)
-            (setq aa 0.50)))
-      (setq prevX (car apt))
-      (setq prevY (cadr apt))
-      (setq prevZ (caddr apt))
-      (setq offset -1)
-      (setq newY (+ prevY offset))
-      (setq minVal (min (/ aa 10) (/ tt 10)))
-      (setq nx (+ prevX minVal))
-      (setq newstartX (list nx prevY prevZ))
-      (setq ny (- prevY minVal))
-      (setq newstartY (list prevX ny prevZ))
-      (setq newApt (list prevX newY prevZ))
-      (command-s "._rectangle" "Fillet" minVal apt "Dimensions" tt aa newApt)
-      (setq rectangle (entlast))
-      (setq newEndX (list (+ nx (* (- aa minVal) 0.40)) (- prevY (* (- tt minval) 0.40)) prevZ))
-      (setq newEndY (list (+ prevX (* aa 0.5580)) (- ny (* (- tt minval ) (/ 3906244.3855 (- ny 0.0)))) prevZ))
-    
-      (command-s "._line" newstartY  newEndX "<135" "" "" "")
-      (setq linek2 (entlast))
-      (command "._offset" "" linek2 newstartX  "" "")
-      (setq linek1 (entlast))
-      (setq LayerName "steels")
-      (setq nny (+ prevY (* 2 ht)))
-      ;(setq text1po (list (- prevX (* ht 1.5)) (- prevY (/ aa 2)) prevZ))
-      ;(setq text2po (list (+ prevX (/ tt 2)) (+ prevY (/ ht 4)) prevZ))
-      (setq text1po (list (- prevX (* 0.1 2.6)) (- prevY (/ aa 2)) prevZ))
-      (setq text2po (list (+ prevX (/ tt 3))  (+ prevY (/ 0.1 4))   prevZ))
-      (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
-      (setq text1 (rtos arz 2 2))
-      (setq text2 (rtos tool 2 2))
-      (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.1))
-      
-      (vla-put-layer thetext1 LayerName)
-      (setq texts1 (entlast))
-      (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point text2po) 0.1))
-      (vla-put-layer thetext2 LayerName)
-      (setq texts2 (entlast))
+  (vl-load-com)
+  (setq doc (vla-get-activedocument (vlax-get-acad-object)))
+  (setq mspace (vla-get-modelspace doc))
+  (setq tt 0)
+  (setq aa 0)
+  (setq text1po 0)
+  (setq text2po 0)
+  (setq 1po 0 )
+  (setq 2po 0 )
 
-      ; Assign the rectangle to a specific layer
-      (vla-put-layer (vlax-ename->vla-object rectangle) LayerName)
-      (vla-put-layer (vlax-ename->vla-object linek1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object linek2) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
-    
-      (setq startss (list (+ prevX (* 2 tt)) (+ prevY (* 4 0.1)) prevZ))
-      (setq endss (list (- prevX (* 0.1 2.5)) (- prevY (* 2 aa)) prevZ))
-      (setq 1po (list (- prevX (* 0.1 3)) (- prevY  (* aa 2) ) prevZ))
-      (setq 2po (list (+ prevX tt )  (+ prevY 1)   prevZ))
-      (setq blockpoints (ssget "_W" 1po 2po)) 
-      (prompt "\nSelect Objects for Make Block")
-      (setq selection (ssget ))
-      (command-s "._-block" blockname text1po selection "")
-      (setq blockref (entlast))
-      (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
-      (command "._insert" blockname text1po "" "" "" )
-      (setq inref (entlast))
-      (vla-put-layer (vlax-ename->vla-object inref) LayerName)
+  ; Set tt and aa values based on tool and arz
+  (if (equal tool arz)
+      (progn
+        (setq tt 0.6)
+        (setq aa 0.6))
+      (progn
+        (setq tt 0.6)
+        (setq aa 0.50)))
+
+  (setq prevX (car apt))
+  (setq prevY (cadr apt))
+  (setq prevZ (caddr apt))
+  (setq offset -1)
+  (setq newY (+ prevY offset))
+  (setq minVal (min (/ aa 10) (/ tt 10)))
+  (setq nx (+ prevX minVal))
+  (setq newstartX (list nx prevY prevZ))
+  (setq ny (- prevY minVal))
+  (setq newstartY (list prevX ny prevZ))
+  (setq newApt (list prevX newY prevZ))
+  
+  (command-s "._rectangle" "Fillet" minVal apt "Dimensions" tt aa newApt)
+  (setq rectangle (entlast))
+  
+  (setq newEndX (list (+ nx (* (- aa minVal) 0.40)) (- prevY (* (- tt minVal) 0.40)) prevZ))
+  (setq newEndY (list (+ prevX (* aa 0.5580)) (- ny (* (- tt minVal ) (/ 3906244.3855 (- ny 0.0)))) prevZ))
+  
+  (command-s "._line" newstartY  newEndX "<135" "" "" "")
+  (setq linek2 (entlast))
+  
+  (command "._offset" "" linek2 newstartX  "" "")
+  (setq linek1 (entlast))
+
+  (setq LayerName "steels")
+  (setq nny (+ prevY (* 2 ht)))
+  
+  (setq text1po (list (- prevX (* 0.1 2.6)) (- prevY (/ aa 2)) prevZ))
+  (setq text2po (list (+ prevX (/ tt 3))  (+ prevY (/ 0.1 4))   prevZ))
+  
+  (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+  (setq text1 (rtos arz 2 2))
+  (setq text2 (rtos tool 2 2))
+  
+  (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.1))
+  (vla-put-layer thetext1 LayerName)
+  (setq texts1 (entlast))
+  
+  (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point text2po) 0.1))
+  (vla-put-layer thetext2 LayerName)
+  (setq texts2 (entlast))
+
+  ; Assign the rectangle and lines to a specific layer
+  (vla-put-layer (vlax-ename->vla-object rectangle) LayerName)
+  (vla-put-layer (vlax-ename->vla-object linek1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object linek2) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
+
+  (setq startss (list (+ prevX (* 2 tt)) (+ prevY (* 4 0.1)) prevZ))
+  (setq endss (list (- prevX (* 0.1 2.5)) (- prevY (* 2 aa)) prevZ))
+  (setq 1po (list (- prevX (* 0.1 3)) (- prevY  (* aa 2) ) prevZ))
+  (setq 2po (list (+ prevX tt )  (+ prevY 1)   prevZ))
+  (setq blockpoints (ssget "_W" 1po 2po))
+
+  (prompt "\nSelect Objects for Make Block")
+  (setq selection (ssget))
+  
+  ; Check if at least 3 objects are selected
+  (while (or (equal selection nil) (< (sslength selection) 3))
+    (princ "Please select at least 3 objects.")
+    (setq selection (ssget))
+  )
+
+  (command-s "._-block" blockname text1po selection "")
+  (setq blockref (entlast))
+  (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
+
+  ; Insert the block at the specified scale
+  (setq scale (* ht 10)) ; Set the desired scale factor here
+  (command "._insert" blockname text1po scale scale "")
+  (setq inref (entlast))
+  (vla-put-layer (vlax-ename->vla-object inref) LayerName)
 )
+
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 (defun create-135*Sanjaghi-block (apt tool kham ht blockname)
- 
-      (vl-load-com)
-      (setq doc (vla-get-activedocument (vlax-get-acad-object)))
-      (setq mspace (vla-get-modelspace doc))
-      (setq tt 0)
-      (setq aa 0)
-      (setq text1po 0)
-      (setq text2po 0)
-      (setq 1po 0 )
-      (setq 2po 0 )
-      
-      (setq prevX (car apt))
-      (setq prevY (cadr apt))
-      (setq prevZ (caddr apt))
-      (setq offset (* ht 2))
-      (setq newY (+ prevY offset))
-      (setq minVal (min (/ aa 10) (/ tt 10)))
-      (setq nx (+ prevX minVal))
-      (setq newstartX (list nx prevY prevZ))
-      (setq ny (- prevY minVal))
-      (setq newstartY (list prevX ny prevZ))
-      (setq newApt (list prevX newY prevZ))
-      (setq endpoint (list (+ 0.50 prevX) newY prevZ))
-      (setq endpoint1 (list (+ prevX 0.16) (- newY 0.1) prevZ))
-      (setq endpoint2 (list (+ prevX 0.34 ) (- newY 0.1) prevZ))
-      (command-s "._line" newApt  endpoint  "" "" "")
-      (setq line1 (entlast))
-      (command-s "._line" newApt "<135"  endpoint1  "" "" "")
-      (setq line2 (entlast))
-      (command-s "._line" endpoint "<45"  endpoint2  "" "" "")
-      (setq line3 (entlast))
-      (command "._fillet" line1 "Radius" 0.02 "" line2) 
-      (command "._fillet" line1 "Radius" 0.02 "" line3) 
-      (defun DtR (d) (* pi (/ d 180.0)))
-      (setq endpoint4 (list (+ prevX 0.16) (- newY 0.12) prevZ))
-      (setq endpoint5 (list (+ prevX 0.30 ) (- newY 0.12) prevZ))
-      (setq midpoint (polar endpoint4 (DTR 135) (/ (distance newApt endpoint1) 2.0) ))
-      (setq midpoint1 (polar endpoint5 (DTR 45) (/ (distance newApt endpoint1) 2.0) ))
-      (command "._point" midpoint1)
-      (setq text1po  (list (+ 0.20 prevX) (+ newY (* (/ ht 15) 2)) prevZ) )
-      
-      (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
-      (setq text1 (rtos tool 2 2))
-      (setq text2 (rtos kham 2 2))
-      (setq text3 (rtos kham 2 2))
-      (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.05))
-      (vla-put-layer thetext1 LayerName)
-      (setq texts1 (entlast))
-      (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point midpoint) 0.03))
-      (vla-put-layer thetext2 LayerName)
-      (setq texts2 (entlast))
-       
-      (setq thetext3 (vla-AddText mspace text3 (vlax-3d-point midpoint1) 0.03))
-      (vla-put-layer thetext3 LayerName)
-      (setq texts3 (entlast))
+  (vl-load-com)
+  (setq doc (vla-get-activedocument (vlax-get-acad-object)))
+  (setq mspace (vla-get-modelspace doc))
+  (setq tt 0)
+  (setq aa 0)
+  (setq text1po 0)
+  (setq text2po 0)
+  (setq 1po 0 )
+  (setq 2po 0 )
 
-      ; Assign the rectangle to a specific layer
-      (vla-put-layer (vlax-ename->vla-object line1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object line2) LayerName)
-      (vla-put-layer (vlax-ename->vla-object line3) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts3) LayerName)
-    
-     
-      (prompt "\nSelect Objects for Make Block")
-      (setq selection (ssget ))
-      (command-s "._-block" blockname text1po selection "")
-      (setq blockref (entlast))
-      (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
-      (command "._insert" blockname text1po "" "" "" )
-      (setq inref (entlast))
-      (vla-put-layer (vlax-ename->vla-object inref) LayerName)
+  (setq prevX (car apt))
+  (setq prevY (cadr apt))
+  (setq prevZ (caddr apt))
+  (setq offset (* ht 2))
+  (setq newY (+ prevY offset))
+  (setq minVal (min (/ aa 10) (/ tt 10)))
+  (setq nx (+ prevX minVal))
+  (setq newstartX (list nx prevY prevZ))
+  (setq ny (- prevY minVal))
+  (setq newstartY (list prevX ny prevZ))
+  (setq newApt (list prevX newY prevZ))
+  (setq endpoint (list (+ 0.50 prevX) newY prevZ))
+  (setq endpoint1 (list (+ prevX 0.16) (- newY 0.1) prevZ))
+  (setq endpoint2 (list (+ prevX 0.34 ) (- newY 0.1) prevZ))
+  (command-s "._line" newApt  endpoint  "" "" "") ; Create line
+  (setq line1 (entlast))
+  (command-s "._line" newApt "<135"  endpoint1  "" "" "") ; Create line
+  (setq line2 (entlast))
+  (command-s "._line" endpoint "<45"  endpoint2  "" "" "") ; Create line
+  (setq line3 (entlast))
+  (command "._fillet" line1 "Radius" 0.02 "" line2) ; Fillet the lines
+  (command "._fillet" line1 "Radius" 0.02 "" line3) ; Fillet the lines
+  (defun DtR (d) (* pi (/ d 180.0)))
+  (setq endpoint4 (list (+ prevX 0.16) (- newY 0.12) prevZ))
+  (setq endpoint5 (list (+ prevX 0.30 ) (- newY 0.12) prevZ))
+  (setq midpoint (polar endpoint4 (DTR 135) (/ (distance newApt endpoint1) 2.0) ))
+  (setq midpoint1 (polar endpoint5 (DTR 45) (/ (distance newApt endpoint1) 2.0) ))
+
+  (setq text1po  (list (+ 0.20 prevX) (+ newY (* (/ ht 15) 2)) prevZ) )
+
+  (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+  (setq text1 (rtos tool 2 2))
+  (setq text2 (rtos kham 2 2))
+  (setq text3 (rtos kham 2 2))
+  (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.05))
+  (vla-put-layer thetext1 LayerName)
+  (setq texts1 (entlast))
+  (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point midpoint) 0.03))
+  (vla-put-layer thetext2 LayerName)
+  (setq texts2 (entlast))
+  (setq thetext3 (vla-AddText mspace text3 (vlax-3d-point midpoint1) 0.03))
+  (vla-put-layer thetext3 LayerName)
+  (setq texts3 (entlast))
+
+  (vla-put-layer (vlax-ename->vla-object line1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object line2) LayerName)
+  (vla-put-layer (vlax-ename->vla-object line3) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts3) LayerName)
+
+  (prompt "\nSelect Objects for Make Block")
+  (setq selection (ssget))
+  (while (or (equal selection nil) (< (sslength selection) 3))
+    (princ "Please select at least 3 objects.")
+    (setq selection (ssget))
+  )
+
+  (command-s "._-block" blockname text1po selection "")
+  (setq blockref (entlast))
+  (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
+
+  ; Insert the block at the specified scale
+  (setq scale (* ht 10)) ; Set the desired scale factor here
+  (command "._insert" blockname text1po scale scale "")
+  (setq inref (entlast))
+  (vla-put-layer (vlax-ename->vla-object inref) LayerName)
 )
+
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 (defun create-90*Sanjaghi-block (apt tool kham ht blockname)
- 
-      (vl-load-com)
-      (setq doc (vla-get-activedocument (vlax-get-acad-object)))
-      (setq mspace (vla-get-modelspace doc))
-     
-      
-      (setq prevX (car apt))
-      (setq prevY (cadr apt))
-      (setq prevZ (caddr apt))
-      (setq offset (* ht 2))
-      (setq newY (+ prevY offset))
-      
-      (setq newApt (list prevX newY prevZ))
-      (setq endpoint (list (+ 0.50 prevX) newY prevZ))
-      (setq endpoint1 (list  prevX  (- newY 0.1) prevZ))
-      (setq endpoint2 (list (+ 0.50 prevX ) (- newY 0.1) prevZ))
-      (command-s "._line" newApt  endpoint  "" "" "")
-      (setq line1 (entlast))
-      (command-s "._line" newApt "<90"  endpoint1  "" "" "")
-      (setq line2 (entlast))
-      (command-s "._line" endpoint "<90"  endpoint2  "" "" "")
-      (setq line3 (entlast))
-      (command "._fillet" line1 "Radius" 0.02 "" line2) 
-      (command "._fillet" line1 "Radius" 0.02 "" line3) 
-      (defun DtR (d) (* pi (/ d 180.0)))
-      (setq endpoint4 (list  prevX  (- newY 0.12) prevZ))
-      (setq endpoint5 (list (+ prevX 0.43 ) (- newY 0.12) prevZ))
-      (setq midpoint (polar endpoint4 (DTR 90) (/ (distance newApt endpoint1) 2.0) ))
-      (setq midpoint1 (polar endpoint5 (DTR 90) (/ (distance newApt endpoint1) 2.0) ))
-      (command "._point" midpoint1)
-      (setq text1po  (list (+ 0.20 prevX) (+ newY (* (/ ht 15) 2)) prevZ) )
-      
-      (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
-      (setq text1 (rtos tool 2 2))
-      (setq text2 (rtos kham 2 2))
-      (setq text3 (rtos kham 2 2))
-      (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.05))
-      (vla-put-layer thetext1 LayerName)
-      (setq texts1 (entlast))
-      (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point midpoint) 0.03))
-      (vla-put-layer thetext2 LayerName)
-      (setq texts2 (entlast))
-       
-      (setq thetext3 (vla-AddText mspace text3 (vlax-3d-point midpoint1) 0.03))
-      (vla-put-layer thetext3 LayerName)
-      (setq texts3 (entlast))
+  (vl-load-com)
+  (setq doc (vla-get-activedocument (vlax-get-acad-object)))
+  (setq mspace (vla-get-modelspace doc))
+  
+  ; Calculate the new coordinates for creating lines
+  (setq prevX (car apt))
+  (setq prevY (cadr apt))
+  (setq prevZ (caddr apt))
+  (setq offset (* ht 2))
+  (setq newY (+ prevY offset))
+  (setq newApt (list prevX newY prevZ))
+  (setq endpoint (list (+ 0.50 prevX) newY prevZ))
+  (setq endpoint1 (list prevX (- newY 0.1) prevZ))
+  (setq endpoint2 (list (+ 0.50 prevX) (- newY 0.1) prevZ))
+  
+  ; Create lines and fillets
+  (command-s "._line" newApt endpoint "" "" "")
+  (setq line1 (entlast))
+  (command-s "._line" newApt "<90" endpoint1 "" "" "")
+  (setq line2 (entlast))
+  (command-s "._line" endpoint "<90" endpoint2 "" "" "")
+  (setq line3 (entlast))
+  (command "._fillet" line1 "Radius" 0.02 "" line2) 
+  (command "._fillet" line1 "Radius" 0.02 "" line3) 
+  
+  ; Helper function to convert degrees to radians
+  (defun DtR (d) (* pi (/ d 180.0)))
+  
+  ; Calculate additional points and midpoints
+  (setq endpoint4 (list prevX (- newY 0.12) prevZ))
+  (setq endpoint5 (list (+ prevX 0.43) (- newY 0.12) prevZ))
+  (setq midpoint (polar endpoint4 (DTR 90) (/ (distance newApt endpoint1) 2.0)))
+  (setq midpoint1 (polar endpoint5 (DTR 90) (/ (distance newApt endpoint1) 2.0)))
+  
+  ; Define the position for text1
+  (setq text1po (list (+ 0.20 prevX) (+ newY (* (/ ht 15) 2)) prevZ))
+  
+  ; Set the text style and create text entities
+  (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+  (setq text1 (rtos tool 2 2))
+  (setq text2 (rtos kham 2 2))
+  (setq text3 (rtos kham 2 2))
+  (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.05))
+  (vla-put-layer thetext1 LayerName)
+  (setq texts1 (entlast))
+  (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point midpoint) 0.03))
+  (vla-put-layer thetext2 LayerName)
+  (setq texts2 (entlast))
+  (setq thetext3 (vla-AddText mspace text3 (vlax-3d-point midpoint1) 0.03))
+  (vla-put-layer thetext3 LayerName)
+  (setq texts3 (entlast))
 
-      ; Assign the rectangle to a specific layer
-      (vla-put-layer (vlax-ename->vla-object line1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object line2) LayerName)
-      (vla-put-layer (vlax-ename->vla-object line3) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts3) LayerName)
-    
-     
-      (prompt "\nSelect Objects for Make Block")
-      (setq selection (ssget ))
-      (command-s "._-block" blockname text1po selection "")
-      (setq blockref (entlast))
-      (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
-      (command "._insert" blockname text1po "" "" "" )
-      (setq inref (entlast))
-      (vla-put-layer (vlax-ename->vla-object inref) LayerName)
-)
-;;=======================================================================================================================
-;;=======================================================================================================================
-;;=======================================================================================================================
-(defun create-90*Sanjaghi-block (apt tool kham ht blockname)
- 
-      (vl-load-com)
-      (setq doc (vla-get-activedocument (vlax-get-acad-object)))
-      (setq mspace (vla-get-modelspace doc))
-     
-      
-      (setq prevX (car apt))
-      (setq prevY (cadr apt))
-      (setq prevZ (caddr apt))
-      (setq offset (* ht 2))
-      (setq newY (+ prevY offset))
-      
-      (setq newApt (list prevX newY prevZ))
-      (setq endpoint (list (+ 0.50 prevX) newY prevZ))
-      (setq endpoint1 (list  prevX  (- newY 0.1) prevZ))
-      (setq endpoint2 (list (+ 0.50 prevX ) (- newY 0.1) prevZ))
-      (command-s "._line" newApt  endpoint  "" "" "")
-      (setq line1 (entlast))
-      (command-s "._line" newApt "<90"  endpoint1  "" "" "")
-      (setq line2 (entlast))
-      (command-s "._line" endpoint "<90"  endpoint2  "" "" "")
-      (setq line3 (entlast))
-      (command "._fillet" line1 "Radius" 0.02 "" line2) 
-      (command "._fillet" line1 "Radius" 0.02 "" line3) 
-      (defun DtR (d) (* pi (/ d 180.0)))
-      (setq endpoint4 (list  prevX  (- newY 0.12) prevZ))
-      (setq endpoint5 (list (+ prevX 0.43 ) (- newY 0.12) prevZ))
-      (setq midpoint (polar endpoint4 (DTR 90) (/ (distance newApt endpoint1) 2.0) ))
-      (setq midpoint1 (polar endpoint5 (DTR 90) (/ (distance newApt endpoint1) 2.0) ))
-      (command "._point" midpoint1)
-      (setq text1po  (list (+ 0.20 prevX) (+ newY (* (/ ht 15) 2)) prevZ) )
-      
-      (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
-      (setq text1 (rtos tool 2 2))
-      (setq text2 (rtos kham 2 2))
-      (setq text3 (rtos kham 2 2))
-      (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.05))
-      (vla-put-layer thetext1 LayerName)
-      (setq texts1 (entlast))
-      (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point midpoint) 0.03))
-      (vla-put-layer thetext2 LayerName)
-      (setq texts2 (entlast))
-       
-      (setq thetext3 (vla-AddText mspace text3 (vlax-3d-point midpoint1) 0.03))
-      (vla-put-layer thetext3 LayerName)
-      (setq texts3 (entlast))
+  ; Assign layers to entities
+  (vla-put-layer (vlax-ename->vla-object line1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object line2) LayerName)
+  (vla-put-layer (vlax-ename->vla-object line3) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts3) LayerName)
 
-      ; Assign the rectangle to a specific layer
-      (vla-put-layer (vlax-ename->vla-object line1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object line2) LayerName)
-      (vla-put-layer (vlax-ename->vla-object line3) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
-      (vla-put-layer (vlax-ename->vla-object texts3) LayerName)
-    
-     
-      (prompt "\nSelect Objects for Make Block")
-      (setq selection (ssget ))
-      (command-s "._-block" blockname text1po selection "")
-      (setq blockref (entlast))
-      (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
-      (command "._insert" blockname text1po "" "" "" )
-      (setq inref (entlast))
-      (vla-put-layer (vlax-ename->vla-object inref) LayerName)
+  ; Prompt for object selection for block creation
+  (prompt "\nSelect Objects for Make Block")
+  (setq selection nil)
+  
+  ; Validate the selection to have at least 3 objects
+  (while (or (equal selection nil) (< (sslength selection) 3))
+    (setq selection (ssget))
+    (princ "Please select at least 3 objects.")
+  )
+
+  ; Create block using selected objects
+  (command-s "._-block" blockname text1po selection "")
+  (setq blockref (entlast))
+  (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
+  
+  ; Prompt for scale input
+  (setq scale (* ht 10))
+  
+  ; Insert the block with the specified scale
+  (command "._insert" blockname text1po scale scale "")
+  (setq inref (entlast))
+  (vla-put-layer (vlax-ename->vla-object inref) LayerName)
 )
+
+;;=======================================================================================================================
+;;=======================================================================================================================
+;;=======================================================================================================================
+(defun create-90*135Sanjaghi-block (apt tool kham ht blockname)
+  (vl-load-com)
+  (setq doc (vla-get-activedocument (vlax-get-acad-object)))
+  (setq mspace (vla-get-modelspace doc))
+  
+  ; Calculate the new coordinates for creating lines
+  (setq prevX (car apt))
+  (setq prevY (cadr apt))
+  (setq prevZ (caddr apt))
+  (setq offset (* ht 2))
+  (setq newY (+ prevY offset))
+  (setq newApt (list prevX newY prevZ))
+  (setq endpoint (list (+ 0.50 prevX) newY prevZ))
+  (setq endpoint1 (list prevX (- newY 0.1) prevZ))
+  (setq endpoint2 (list (+ prevX 0.34) (- newY 0.1) prevZ))
+  
+  ; Create lines and fillets
+  (command-s "._line" newApt endpoint "" "" "")
+  (setq line1 (entlast))
+  (command-s "._line" newApt "<90" endpoint1 "" "" "")
+  (setq line2 (entlast))
+  (command-s "._line" endpoint "<135" endpoint2 "" "" "")
+  (setq line3 (entlast))
+  (command "._fillet" line1 "Radius" 0.02 "" line2) 
+  (command "._fillet" line1 "Radius" 0.02 "" line3) 
+  
+  ; Helper function to convert degrees to radians
+  (defun DtR (d) (* pi (/ d 180.0)))
+  
+  ; Calculate additional points and midpoints
+  (setq endpoint4 (list prevX (- newY 0.12) prevZ))
+  (setq endpoint5 (list (+ prevX 0.43) (- newY 0.12) prevZ))
+  (setq midpoint (polar endpoint4 (DtR 90) (/ (distance newApt endpoint1) 2.0)))
+  (setq midpoint1 (polar endpoint5 (DtR 90) (/ (distance newApt endpoint1) 2.0)))
+  
+  ; Define the position for text1
+  (setq text1po (list (+ 0.20 prevX) (+ newY (* (/ ht 15) 2)) prevZ))
+  
+  ; Set the text style and create text entities
+  (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+  (setq text1 (rtos tool 2 2))
+  (setq text2 (rtos kham 2 2))
+  (setq text3 (rtos kham 2 2))
+  (setq thetext1 (vla-AddText mspace text1 (vlax-3d-point text1po) 0.05))
+  (vla-put-layer thetext1 LayerName)
+  (setq texts1 (entlast))
+  (setq thetext2 (vla-AddText mspace text2 (vlax-3d-point midpoint) 0.03))
+  (vla-put-layer thetext2 LayerName)
+  (setq texts2 (entlast))
+  (setq thetext3 (vla-AddText mspace text3 (vlax-3d-point midpoint1) 0.03))
+  (vla-put-layer thetext3 LayerName)
+  (setq texts3 (entlast))
+
+  ; Assign layers to entities
+  (vla-put-layer (vlax-ename->vla-object line1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object line2) LayerName)
+  (vla-put-layer (vlax-ename->vla-object line3) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts1) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts2) LayerName)
+  (vla-put-layer (vlax-ename->vla-object texts3) LayerName)
+
+  ; Prompt for object selection for block creation
+  (prompt "\nSelect Objects for Make Block")
+  (setq selection nil)
+  
+  ; Validate the selection to have at least 3 objects
+  (while (or (equal selection nil) (< (sslength selection) 3))
+    (setq selection (ssget))
+    (princ "Please select at least 3 objects.")
+  )
+
+  ; Create block using selected objects
+  (command-s "._-block" blockname text1po selection "")
+  (setq blockref (entlast))
+  (vla-put-layer (vlax-ename->vla-object blockref) LayerName)
+  (setq scale (* ht))
+  
+  ; Insert the block with the specified scale
+  (command "._insert" blockname text1po scale scale "")
+  
+  (setq inref (entlast))
+  (vla-put-layer (vlax-ename->vla-object inref) LayerName)
+)
+
 ;;=======================================================================================================================
 ;;=======================================================================================================================
 ;;=======================================================================================================================
@@ -883,7 +1048,7 @@
                 (setq dia (atoi(getstring t "\nInvalid input. Select diameter [8/10/12/14/16/18/20/22/25/28/30/32]: ")))
               )
           (setq length-choice 0)
-          (initget 1)
+          (initget (+ 1 4))
           (setq length-choice (getreal "\nEnter length of rebar or Enter [0] to select"))
           
           (if (= length-choice 0)
@@ -897,11 +1062,12 @@
                             (princ (strcat "\nOverlap Length: " (rtos overlap-length 2 2) " cm"))
                             (setq number  1)
                             (setq max-length 12.0)  ; Maximum length of a rebar without overlap
-                            (setq bend (getstring t "\nwith bend(b) or without bend(w) [b/w]:"))
+                            (setq bend (strcase (getstring t "\nwith bend(b) or without bend(w) [b/w]:")))
+                          
                             (if 
                               (or(equal bend "b") (equal bend "B"))
                               (progn
-                                (initget 1)
+                                (initget (+ 1 4))
                                 (setq qty (getreal "put number of rebars or enter [0]"))
                                 (if 
                                       (or(= qty 0) (equal qty "0"))
@@ -910,7 +1076,7 @@
                                     (eza)
                                     
                                     (setq dist AddSum)
-                                    (initget 1)
+                                    (initget (+ 1 2 4))
                                     (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                                     ; Calculate the number of rebars
                                     (setq cmspace (/ space 100 ) )
@@ -940,7 +1106,7 @@
                                         ". Remaining total length: " (rtos remm1 2 2) " kham: "(rtos khamm 2 2) " m"))
                               )
                               (progn
-                                (initget 1)
+                                (initget (+ 1 4))
                                 (setq qty (getreal "put number of rebars or enter [0]"))
                                 (if 
                                       (or(= qty 0) (equal qty "0"))
@@ -948,7 +1114,7 @@
                                     (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                                     (eza)
                                     (setq dist AddSum)
-                                    (initget 1)
+                                    (initget (+ 1 2 4))
                                     (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                                     ; Calculate the number of rebars
                                     (setq cmspace (/ space 100 ) )
@@ -983,7 +1149,7 @@
                           (setq mspace (vla-get-modelspace 
                                             (vla-get-activedocument 
                                                   (vlax-get-acad-object))))
-                            ;;(setq currlayer (vla-get-layer doc))
+                            (initget (+ 1 2 4))
                             (setq apt (getpoint "\nInsertion Point: "))
 
                             (setq LayerName "steels")
@@ -1040,7 +1206,7 @@
                               (setq khamm (/ kham 1000.))
                               (alert  (strcat (rtos length-choice 2 2 ) "+ ((kham) 2 * " (rtos khamm 2 2 ) ")")   )
                               (setq totalLen (+ length-choice (* 2 khamm) ))
-                            (initget 1)
+                            (initget (+ 1 4))
                             (setq qty (getreal "put number of rebars or enter [0]"))
                               (if 
                                     (or(= qty 0) (equal qty "0"))
@@ -1048,8 +1214,7 @@
                                   (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                                   (eza)
                                   (setq dist AddSum)
-                                  (initget 1)
-                                  
+                                  (initget (+ 1 2 4))
                                   (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                                   ; Calculate the number of rebars
                                   (setq cmspace (/ space 100 ) )
@@ -1071,7 +1236,7 @@
                                 (setq mspace (vla-get-modelspace 
                                                   (vla-get-activedocument 
                                                         (vlax-get-acad-object))))
-                                  ;;(setq currlayer (vla-get-layer doc))
+                                  (initget (+ 1 2 4))
                                   (setq apt (getpoint "\nInsertion Point: "))
 
                                   (setq LayerName "steels")
@@ -1098,7 +1263,7 @@
                             (if 
                               (or(equal bend "b") (equal bend "B"))
                               (progn
-                                (initget 1)
+                                (initget (+ 1 4))
                                 (setq qty (getreal "put number of rebars or enter [0]"))
                                 (if 
                                       (or(= qty 0) (equal qty "0"))
@@ -1106,7 +1271,7 @@
                                     (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                                     (eza)
                                     (setq dist AddSum)
-                                    (initget 1)
+                                    (initget (+ 1 2 4))
                                     (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                                     ; Calculate the number of rebars
                                     (setq cmspace (/ space 100 ) )
@@ -1135,7 +1300,7 @@
                                       "\nEnd rebar: " (rtos (- remm khamm) 2 2) "\n+\nbend: " (rtos khamm 2 2 )))
                               )
                               (progn
-                                (initget 1)
+                                (initget (+ 1 4))
                                 (setq qty (getreal "put number of rebars or enter [0]"))
                                 (if 
                                       (or(= qty 0) (equal qty "0"))
@@ -1143,7 +1308,7 @@
                                     (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                                     (eza)
                                     (setq dist AddSum)
-                                    (initget 1)
+                                    (initget (+ 1 2 4))
                                     (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                                     ; Calculate the number of rebars
                                     (setq cmspace (/ space 100 ) )
@@ -1182,6 +1347,7 @@
                                                   (vla-get-activedocument 
                                                         (vlax-get-acad-object))))
                                   ;;(setq currlayer (vla-get-layer doc))
+                                  (initget (+ 1 2 4))
                                   (setq apt (getpoint "\nInsertion Point: "))
 
                                   (setq LayerName "steels")
@@ -1233,7 +1399,7 @@
               (if (or (< length-choice 12) (= length-choice 12))
                 (progn 
                   (setq totalLen length-choice)
-                  (initget 1)
+                  (initget (+ 1 4))
                   (setq qty (getstring "put number of rebars or enter [0]"))
                                 (if 
                                       (or(= qty 0) (equal qty "0"))
@@ -1241,8 +1407,7 @@
                                     (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                                     (eza)
                                     (setq dist AddSum)
-                                    (initget 1)
-                                    
+                                    (initget (+ 1 2 4))
                                     (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                                     ; Calculate the number of rebars
                                     (setq cmspace (/ space 100 ) )
@@ -1272,6 +1437,7 @@
                                             (vla-get-activedocument 
                                                   (vlax-get-acad-object))))
                             ;;(setq currlayer (vla-get-layer doc))
+                            (initget (+ 1 2 4))
                             (setq apt (getpoint "\nInsertion Point: "))
 
                             (setq LayerName "steels")
@@ -1322,11 +1488,14 @@
               (while (not (member  (rtos dia 2 0)  diameters))
                 (setq dia (getint "\nInvalid diameter. Enter again: "))
               )
+              (initget (+ 1 2 4))
               (setq lengthsn (getdist "\nInsert Tool (m): "))
+              (initget (+ 1 2 4))
               (setq widthsn (getdist "\nInsert ARZ (m): "))
+              (initget (+ 1 2 4))
               (setq cover (getdist "\nInsert cover (m) "))
               (setq stirrup-length (calculate-stirrup-length lengthsn widthsn cover dia))
-              (initget 1)
+              (initget (+ 1 4))
               (setq qty (getreal "put number of rebars or enter [0]"))
                     (if 
                           (or(= qty 0) (equal qty "0"))
@@ -1334,7 +1503,7 @@
                         (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                         (eza)
                         (setq dist AddSum)
-
+                        (initget (+ 1 2 4))
                         (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                         ; Calculate the number of rebars
                         (setq cmspace (/ space 100 ) )
@@ -1356,6 +1525,7 @@
               (vla-get-activedocument 
                                 (vlax-get-acad-object))))
                               ;;(setq currlayer (vla-get-layer doc))
+              (initget (+ 1 2 4))
               (setq apt (getpoint "\nInsertion Point: "))
 
               (setq LayerName "steels")
@@ -1399,6 +1569,7 @@
             (progn
                 
                (defun calculate-135*Sanjaghi-length ()
+                 (initget (+ 1 2 4))
                 (setq lengthsn (getdist "\nInsert Tool (m): "))
                 (setq widthsn   (* ( / dia 1000) 6)  )
                 (if (< widthsn 0.10) (setq widthsn 10))
@@ -1406,13 +1577,13 @@
                 )
 
               (setq diameters '(8 10 12 14 16 18 20 22 25 28 30 32))
-              (initget 1)
+              (initget (+ 1 2 4))
               (setq dia (getreal "\nSelect diameter [8/10/12/14/16/18/20/22/25/28/30/32]: "))
               (while (not (member   dia   diameters))
                 (setq dia (getreal "\nInvalid diameter. Enter again [8/10/12/14/16/18/20/22/25/28/30/32]: "))
               )
               (setq Sanjaghi35-length (calculate-135*Sanjaghi-length ))
-              (initget 1)
+              (initget (+ 1 4))
               (setq qty (getreal "put number of rebars or enter [0]"))
                     (if 
                           (or(= qty 0) (equal qty "0"))
@@ -1420,7 +1591,7 @@
                         (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                         (eza)
                         (setq dist AddSum)
-
+                        (initget (+ 1 2 4))
                         (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                         ; Calculate the number of rebars
                         (setq cmspace (/ space 100 ) )
@@ -1443,10 +1614,11 @@
               (vla-get-activedocument 
                                 (vlax-get-acad-object))))
                               ;;(setq currlayer (vla-get-layer doc))
+              (initget (+ 1 2 4))
               (setq apt (getpoint "\nInsertion Point: "))
 
               (setq LayerName "steels")
-               (initget 1)             
+                       
               (setq ht (getreal "\nHeight : "))
                (if (or (equal ht nil)(equal ht "")) (setq ht 0.2)(setq ht ht))             ;;(vla-put-layer finaltext  "steels")
               (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
@@ -1486,6 +1658,7 @@
             (progn
                 
                 (defun calculate-90*Sanjaghi-length ()
+                (initget (+ 1 2 4))
                 (setq lengthsn (getdist "\nInsert Tool (m): "))
                 (setq widthsn   (* ( / dia 1000) 6)  )
                 (if (< widthsn 0.10) (setq widthsn 0.1))
@@ -1499,7 +1672,7 @@
                 (setq dia (getreal "\nInvalid diameter. Enter again [8/10/12/14/16/18/20/22/25/28/30/32]: "))
               )
               (setq Sanjaghi35-length (calculate-90*Sanjaghi-length ))
-              (initget 1)
+              (initget (+ 1 4))
               (setq qty (getreal "put number of rebars or enter [0]"))
                     (if 
                           (or(= qty 0) (equal qty "0"))
@@ -1507,7 +1680,7 @@
                         (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
                         (eza)
                         (setq dist AddSum)
-
+                         (initget (+ 1 2 4))
                         (setq space (getreal "\nEnter the spacing between rebars in cm: "))
                         ; Calculate the number of rebars
                         (setq cmspace (/ space 100 ) )
@@ -1530,10 +1703,11 @@
               (vla-get-activedocument 
                                 (vlax-get-acad-object))))
                               ;;(setq currlayer (vla-get-layer doc))
+              (initget (+ 1 2 4))
               (setq apt (getpoint "\nInsertion Point: "))
 
               (setq LayerName "steels")
-                            
+                         
               (setq ht (getreal "\nHeight : "))
                (if (or (equal ht nil)(equal ht "")) (setq ht 0.2)(setq ht ht))             ;;(vla-put-layer finaltext  "steels")
               (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
@@ -1568,6 +1742,97 @@
               (setq widthsn   (* ( / dia 1000) 6)  )
               (if (< widthsn 0.10) (setq widthsn 0.1))
               (create-90*Sanjaghi-block newApt lengthsn widthsn ht blockname)
+            )
+            
+          )
+          (if (or (equal shapes "ns") (equal shapes "NS") )
+            (progn
+                
+                (defun calculate-90*135Sanjaghi-length ()
+                (initget (+ 1 2 4))
+                (setq lengthsn (getdist "\nInsert Tool (m): "))
+                (setq widthsn   (* ( / dia 1000) 6)  )
+                (if (< widthsn 0.10) (setq widthsn 0.1))
+                (setq total (+ (* 2 widthsn) lengthsn ))
+                  
+                )
+            
+              (setq diameters '(8 10 12 14 16 18 20 22 25 28 30 32))
+              (setq dia (getreal "\nSelect diameter [8/10/12/14/16/18/20/22/25/28/30/32]: "))
+              (while (not (member   dia   diameters))
+                (setq dia (getreal "\nInvalid diameter. Enter again [8/10/12/14/16/18/20/22/25/28/30/32]: "))
+              )
+              (setq Sanjaghi9035-length (calculate-90*135Sanjaghi-length ))
+              (initget (+ 1 4))
+              (setq qty (getreal "put number of rebars or enter [0]"))
+                    (if 
+                          (or(= qty 0) (equal qty "0"))
+                      (progn
+                        (princ "\nEnter the length of space in which the reinforcements are placed in m: ")
+                        (eza)
+                        (setq dist AddSum)
+                         (initget (+ 1 2 4))
+                        (setq space (getreal "\nEnter the spacing between rebars in cm: "))
+                        ; Calculate the number of rebars
+                        (setq cmspace (/ space 100 ) )
+                        (setq num (1+ (fix (/ dist cmspace))))
+                      )
+                      (setq num  qty)
+                    )
+              
+              (setq tot (* num total))
+              (setq dia1 (fix dia))
+              (setq unit-weight (/ (cdr (assoc dia1 '((8 . 0.617) (10 . 0.617) (12 . 0.888) (14 . 1.21) (16 . 1.58) (18 . 2.00) (20 . 2.47) (22 . 2.98) (25 . 3.85) (28 . 4.83) (30 . 5.55) (32 . 6.31))))))
+              (setq total-weight  (* tot unit-weight))
+               (if (or(equal space "")(equal space nil)) (setq space 0))
+              (setq position (find-max-number))
+              (setq finaltext (strcat  nameOfObject "/"  (rtos position 2 0) "/" (rtos num 2 0) "/\U+00D8" (rtos dia 2 0) "@" (rtos space 2 0)"cm/" " L=" (rtos Sanjaghi9035-length 2 2) "/" (rtos tot 2 2) "m/" (rtos total-weight 2 2) " kg/" shapes "\n" )) 
+              (alert (strcat "this is string: " " "finaltext) )
+                            
+              (vl-load-com)
+              (setq mspace (vla-get-modelspace 
+              (vla-get-activedocument 
+                                (vlax-get-acad-object))))
+                              ;;(setq currlayer (vla-get-layer doc))
+              (initget (+ 1 2 4))
+              (setq apt (getpoint "\nInsertion Point: "))
+
+              (setq LayerName "steels")
+                         
+              (setq ht (getreal "\nHeight : "))
+               (if (or (equal ht nil)(equal ht "")) (setq ht 0.2)(setq ht ht))             ;;(vla-put-layer finaltext  "steels")
+              (command-s "-style" "khayyam" "@Arial unicode MS" ht 0.85 0 "N" "N")
+              (setq thetext (vla-AddText mspace finaltext 
+                                                (vlax-3d-point apt) ht))
+              (vla-put-layer thetext LayerName )  ; Diameter of the rebar in cm
+              
+              (princ (strcat "\nSanjaghi Length: " (rtos total 2 2) " m\n"))
+              
+              (setq prevX (car apt))
+                          (setq prevY (cadr apt))
+                          (setq prevZ (caddr apt))
+
+                          ; Set the offset distance for the new text below the previous text
+                          (setq offset (* ht -3))  ; Adjust this value as needed
+
+                          ; Calculate the new Y-coordinate for the insertion point
+                          (setq newY (+ prevY offset))
+
+                          ; Create the new insertion point with the updated coordinates
+                          (setq newApt (list prevX newY prevZ))
+                        (setq blockname (strcat  nameOfObject   (rtos position 2 0)) )
+                        (while (tblsearch "BLOCK" blockname)
+                          (progn
+                            (setq nnn 1)
+                            (setq blockname "")
+                            
+                            (setq blockname (strcat  nameOfObject   (rtos position 2 0) "0" (itoa nnn) ) )
+                            (setq nnn (1+ nnn))
+                          )
+                        )
+              (setq widthsn   (* ( / dia 1000) 6)  )
+              (if (< widthsn 0.10) (setq widthsn 0.1))
+              (create-90*135Sanjaghi-block newApt lengthsn widthsn ht blockname)
             )
             
           )
